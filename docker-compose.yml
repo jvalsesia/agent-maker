@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: agent-maker-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: agentmaker
+      POSTGRES_USER: agentmaker
+      POSTGRES_PASSWORD: agentmaker
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - agent_maker_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agentmaker -d agentmaker"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+
+volumes:
+  agent_maker_pgdata:
