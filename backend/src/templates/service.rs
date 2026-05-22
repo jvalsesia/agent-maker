@@ -45,7 +45,7 @@ impl TemplatesService {
 
     pub fn get_agent(&self, slug: &str) -> AppResult<AgentTemplateDetail> {
         let a = catalog::find_agent(slug)
-            .ok_or_else(|| AppError::NotFound(format!("template agent {slug}")))?;
+            .ok_or_else(|| AppError::TemplateNotFound(format!("agent {slug}")))?;
         let suggested = a
             .suggested_skills
             .iter()
@@ -73,7 +73,7 @@ impl TemplatesService {
 
     pub fn get_skill(&self, slug: &str) -> AppResult<SkillTemplateDetail> {
         let s = catalog::find_skill(slug)
-            .ok_or_else(|| AppError::NotFound(format!("template skill {slug}")))?;
+            .ok_or_else(|| AppError::TemplateNotFound(format!("skill {slug}")))?;
         Ok(SkillTemplateDetail {
             slug: s.slug,
             name: s.name,
@@ -85,7 +85,7 @@ impl TemplatesService {
 
     pub async fn adopt_agent(&self, slug: &str) -> AppResult<AdoptAgentResponse> {
         let template = catalog::find_agent(slug)
-            .ok_or_else(|| AppError::NotFound(format!("template agent {slug}")))?;
+            .ok_or_else(|| AppError::TemplateNotFound(format!("agent {slug}")))?;
 
         let mut tx = self.pool.begin().await?;
 
@@ -161,7 +161,7 @@ impl TemplatesService {
 
     pub async fn adopt_skill(&self, slug: &str) -> AppResult<AdoptSkillResponse> {
         let template = catalog::find_skill(slug)
-            .ok_or_else(|| AppError::NotFound(format!("template skill {slug}")))?;
+            .ok_or_else(|| AppError::TemplateNotFound(format!("skill {slug}")))?;
 
         let mut tx = self.pool.begin().await?;
         let final_name = unique_name(&mut tx, "skills", template.name).await?;

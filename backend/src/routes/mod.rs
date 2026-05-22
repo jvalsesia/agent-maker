@@ -2,6 +2,7 @@ pub mod agents;
 pub mod attachments;
 pub mod settings;
 pub mod skills;
+pub mod templates;
 
 use crate::{
     agents::AgentsService, llm::ProviderRegistry, settings::SettingsService,
@@ -27,7 +28,8 @@ pub fn router(state: Arc<AppState>) -> Router {
             settings::routes()
                 .merge(agents::routes())
                 .merge(skills::routes())
-                .merge(attachments::routes()),
+                .merge(attachments::routes())
+                .merge(templates::routes()),
         )
         .with_state(state)
 }
