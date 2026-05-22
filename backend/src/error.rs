@@ -18,6 +18,9 @@ pub enum AppError {
     #[error("not found: {0}")]
     NotFound(String),
 
+    #[error("template not found: {0}")]
+    TemplateNotFound(String),
+
     #[error("confirmation required")]
     ConfirmationRequired,
 
@@ -47,6 +50,7 @@ impl AppError {
             AppError::Validation { .. } => "validation_error".into(),
             AppError::Provider { code, .. } => code.clone(),
             AppError::NotFound(_) => "not_found".into(),
+            AppError::TemplateNotFound(_) => "template_not_found".into(),
             AppError::ConfirmationRequired => "confirmation_required".into(),
             AppError::KeyStore(_) => "key_write_failed".into(),
             AppError::Database(_) => "database_error".into(),
@@ -60,6 +64,7 @@ impl AppError {
             AppError::Validation { .. } | AppError::ConfirmationRequired => StatusCode::BAD_REQUEST,
             AppError::Provider { status, .. } => *status,
             AppError::NotFound(_) => StatusCode::NOT_FOUND,
+            AppError::TemplateNotFound(_) => StatusCode::NOT_FOUND,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }

@@ -9,10 +9,11 @@ pub mod settings;
 pub mod skill_attachments;
 pub mod skills;
 pub mod telemetry;
+pub mod templates;
 
 use crate::{
     agents::AgentsService, llm::ProviderRegistry, routes::AppState, settings::SettingsService,
-    skill_attachments::AttachmentsService, skills::SkillsService,
+    skill_attachments::AttachmentsService, skills::SkillsService, templates::TemplatesService,
 };
 use axum::Router;
 use sqlx::PgPool;
@@ -21,18 +22,21 @@ use std::{path::Path, sync::Arc};
 /// Build the Axum router from a live `PgPool` and a directory to host the file-store fallback.
 /// Used by `main.rs` and by integration tests.
 pub fn build_app(pool: PgPool, secrets_home: &Path) -> Router {
+    templates::catalog::validate().expect("starter template catalog must validate");
     let secrets = Arc::new(secrets::auto(secrets_home));
     let providers = ProviderRegistry::new(secrets.clone());
     let settings_svc = SettingsService::new(pool.clone(), secrets.clone());
     let agents_svc = AgentsService::new(pool.clone(), secrets);
     let skills_svc = SkillsService::new(pool.clone());
-    let attachments_svc = AttachmentsService::new(pool);
+    let attachments_svc = AttachmentsService::new(pool.clone());
+    let templates_svc = TemplatesService::new(pool);
     let state = Arc::new(AppState {
         settings: settings_svc,
         providers,
         agents: agents_svc,
         skills: skills_svc,
         attachments: attachments_svc,
+        templates: templates_svc,
     });
     routes::router(state)
 }
@@ -40,17 +44,20 @@ pub fn build_app(pool: PgPool, secrets_home: &Path) -> Router {
 /// Same as `build_app` but lets the caller inject a specific `AnyStore` (e.g., always a
 /// `FileStore` under tempdir) so tests don't touch the developer's OS keychain.
 pub fn build_app_with_store(pool: PgPool, secrets: Arc<secrets::AnyStore>) -> Router {
+    templates::catalog::validate().expect("starter template catalog must validate");
     let providers = ProviderRegistry::new(secrets.clone());
     let settings_svc = SettingsService::new(pool.clone(), secrets.clone());
     let agents_svc = AgentsService::new(pool.clone(), secrets);
     let skills_svc = SkillsService::new(pool.clone());
-    let attachments_svc = AttachmentsService::new(pool);
+    let attachments_svc = AttachmentsService::new(pool.clone());
+    let templates_svc = TemplatesService::new(pool);
     let state = Arc::new(AppState {
         settings: settings_svc,
         providers,
         agents: agents_svc,
         skills: skills_svc,
         attachments: attachments_svc,
+        templates: templates_svc,
     });
     routes::router(state)
 }

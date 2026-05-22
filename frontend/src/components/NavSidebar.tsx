@@ -5,7 +5,7 @@ import { cn } from "@/lib/cn";
 const items = [
   { to: "/agents", label: "Agents", icon: Bot, disabled: false },
   { to: "/skills", label: "Skills", icon: Sparkles, disabled: false },
-  { to: "/templates", label: "Templates", icon: BookOpen, disabled: true },
+  { to: "/templates", label: "Templates", icon: BookOpen, disabled: false },
   { to: "/conversations", label: "Conversations", icon: MessageSquare, disabled: true },
   { to: "/settings", label: "Settings", icon: Settings, disabled: false },
 ];
