@@ -1,4 +1,5 @@
 pub mod agents;
+pub mod attachments;
 pub mod settings;
 pub mod skills;
 
@@ -24,7 +25,8 @@ pub fn router(state: Arc<AppState>) -> Router {
             "/api",
             settings::routes()
                 .merge(agents::routes())
-                .merge(skills::routes()),
+                .merge(skills::routes())
+                .merge(attachments::routes()),
         )
         .with_state(state)
 }

@@ -83,9 +83,10 @@ impl AttachmentsService {
             )));
         }
 
-        // Renumber remaining rows to close the gap. We bump every position by a
-        // large offset first to side-step the UNIQUE(agent_id, position) check,
-        // then collapse them back down to 0..N-1 by created_at order.
+        // Renumber remaining rows to close the gap. Iterating in ascending position
+        // order means every new position is <= the old one, so we never collide with
+        // an existing row (UNIQUE(agent_id, position)) and never exceed the CHECK
+        // bound (position BETWEEN 0 AND 19).
         let remaining: Vec<(Uuid, i16)> = sqlx::query_as(
             r#"SELECT skill_id, position FROM agent_skills
                WHERE agent_id = $1 ORDER BY position ASC"#,
@@ -94,18 +95,17 @@ impl AttachmentsService {
         .fetch_all(&mut *tx)
         .await?;
 
-        sqlx::query("UPDATE agent_skills SET position = position + 100 WHERE agent_id = $1")
-            .bind(agent_id)
-            .execute(&mut *tx)
-            .await?;
-
-        for (idx, (sid, _)) in remaining.iter().enumerate() {
+        for (idx, (sid, old_pos)) in remaining.iter().enumerate() {
+            let new_pos = idx as i16;
+            if new_pos == *old_pos {
+                continue;
+            }
             sqlx::query(
                 "UPDATE agent_skills SET position = $3 WHERE agent_id = $1 AND skill_id = $2",
             )
             .bind(agent_id)
             .bind(sid)
-            .bind(idx as i16)
+            .bind(new_pos)
             .execute(&mut *tx)
             .await?;
         }
