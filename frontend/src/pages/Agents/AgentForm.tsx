@@ -31,6 +31,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { DeleteAgentDialog } from "./DeleteAgentDialog";
+import { AgentSkillsPanel } from "./AgentSkillsPanel";
 
 const PROVIDER_LABELS: Record<ProviderName, string> = {
   anthropic: "Anthropic",
@@ -301,6 +302,8 @@ export function AgentForm() {
             />
           </Field>
         </div>
+
+        {editing && id && <AgentSkillsPanel agentId={id} />}
 
         {editing && (
           <div className="rounded-md border border-border">
