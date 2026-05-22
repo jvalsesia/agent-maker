@@ -152,13 +152,14 @@ impl SettingsService {
     }
 
     pub async fn put_key(&self, name: ProviderName, req: PutKey) -> AppResult<()> {
-        if req.key.is_empty() && !matches!(name, ProviderName::OpenAiCompat) {
+        let key = req.key.trim().to_string();
+        if key.is_empty() && !matches!(name, ProviderName::OpenAiCompat) {
             return Err(AppError::validation_field("key", "must be non-empty"));
         }
-        let masked = mask_key(&req.key);
-        if !req.key.is_empty() {
+        let masked = mask_key(&key);
+        if !key.is_empty() {
             self.secrets
-                .put(name.as_str(), &req.key)
+                .put(name.as_str(), &key)
                 .await
                 .map_err(|e| AppError::KeyStore(e.to_string()))?;
         }

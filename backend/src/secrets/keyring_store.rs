@@ -21,21 +21,26 @@ impl KeyringStore {
 #[async_trait]
 impl SecretStore for KeyringStore {
     async fn put(&self, name: &str, secret: &str) -> Result<(), SecretError> {
-        let name = name.to_string();
-        let secret = secret.to_string();
-        tokio::task::spawn_blocking(move || {
-            keyring::Entry::new(SERVICE, &name)
-                .and_then(|e| e.set_password(&secret))
+        let name_owned = name.to_string();
+        let secret_owned = secret.to_string();
+        let res = tokio::task::spawn_blocking(move || {
+            keyring::Entry::new(SERVICE, &name_owned)
+                .and_then(|e| e.set_password(&secret_owned))
                 .map_err(|e| SecretError::Backend(e.to_string()))
         })
         .await
-        .map_err(|e| SecretError::Backend(e.to_string()))?
+        .map_err(|e| SecretError::Backend(e.to_string()))?;
+        match &res {
+            Ok(()) => tracing::info!(provider = %name, "keyring put ok"),
+            Err(e) => tracing::error!(provider = %name, error = %e, "keyring put failed"),
+        }
+        res
     }
 
     async fn get(&self, name: &str) -> Result<String, SecretError> {
-        let name = name.to_string();
-        tokio::task::spawn_blocking(move || {
-            match keyring::Entry::new(SERVICE, &name)
+        let name_owned = name.to_string();
+        let res = tokio::task::spawn_blocking(move || {
+            match keyring::Entry::new(SERVICE, &name_owned)
                 .map_err(|e| SecretError::Backend(e.to_string()))?
                 .get_password()
             {
@@ -45,7 +50,15 @@ impl SecretStore for KeyringStore {
             }
         })
         .await
-        .map_err(|e| SecretError::Backend(e.to_string()))?
+        .map_err(|e| SecretError::Backend(e.to_string()))?;
+        match &res {
+            Ok(_) => tracing::debug!(provider = %name, "keyring get ok"),
+            Err(SecretError::NotFound) => {
+                tracing::warn!(provider = %name, "keyring get: entry not found")
+            }
+            Err(e) => tracing::error!(provider = %name, error = %e, "keyring get failed"),
+        }
+        res
     }
 
     async fn delete(&self, name: &str) -> Result<(), SecretError> {

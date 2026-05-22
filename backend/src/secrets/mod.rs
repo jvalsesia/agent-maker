@@ -64,7 +64,15 @@ impl SecretStore for AnyStore {
 }
 
 /// Prefers the OS keychain; falls back to a file-based encrypted store.
+///
+/// Set `AGENT_MAKER_FORCE_FILE_STORE=1` to skip the keyring probe and always use the
+/// encrypted file store. Useful on Linux desktops where the Secret Service collection
+/// is unreliable (locked between sessions, dropped on logout, etc.).
 pub fn auto(home: &Path) -> AnyStore {
+    if std::env::var("AGENT_MAKER_FORCE_FILE_STORE").ok().as_deref() == Some("1") {
+        tracing::info!("secret store: file (forced via AGENT_MAKER_FORCE_FILE_STORE)");
+        return AnyStore::File(FileStore::open_or_create(home).expect("init file secret store"));
+    }
     match KeyringStore::new() {
         Ok(k) => {
             tracing::info!("secret store: keyring");

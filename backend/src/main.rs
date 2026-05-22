@@ -1,19 +1,4 @@
-mod config;
-mod db;
-mod error;
-mod llm;
-mod routes;
-mod secrets;
-mod settings;
-mod telemetry;
-
-use crate::{
-    config::Config,
-    llm::ProviderRegistry,
-    routes::AppState,
-    settings::SettingsService,
-};
-use std::sync::Arc;
+use agent_maker::{build_app, config::Config, db, telemetry};
 use tower_http::trace::TraceLayer;
 
 #[tokio::main]
@@ -23,12 +8,7 @@ async fn main() -> anyhow::Result<()> {
     tracing::info!(?cfg.bind_addr, "starting agent-maker backend");
 
     let pool = db::init(&cfg.database_url).await?;
-    let secrets = Arc::new(secrets::auto(&cfg.agent_maker_home));
-    let providers = ProviderRegistry::new(secrets.clone());
-    let settings_svc = SettingsService::new(pool, secrets);
-    let state = Arc::new(AppState { settings: settings_svc, providers });
-
-    let mut app = routes::router(state).layer(TraceLayer::new_for_http());
+    let mut app = build_app(pool, &cfg.agent_maker_home).layer(TraceLayer::new_for_http());
 
     if let Some(dist) = cfg.serve_frontend_dist.as_ref() {
         if dist.exists() {
