@@ -194,6 +194,11 @@ export function AgentForm() {
             </Link>
           </p>
         </div>
+        {editing && id && (
+          <Button variant="outline" onClick={() => navigate(`/agents/${id}/chat`)}>
+            Open chat
+          </Button>
+        )}
       </div>
 
       <div className="mt-6 space-y-5">

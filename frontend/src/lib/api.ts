@@ -173,7 +173,55 @@ export const api = {
     request<void>("DELETE", `/api/agents/${agentId}/skills/${skillId}`),
   getComposePreview: (agentId: string) =>
     request<ComposePreview>("GET", `/api/agents/${agentId}/compose`),
+
+  // ----- Conversations (F06) -----
+  listConversations: (agentId: string) =>
+    request<{ conversations: Conversation[] }>(
+      "GET",
+      `/api/agents/${agentId}/conversations`,
+    ),
+  createConversation: (agentId: string, title?: string) =>
+    request<{ conversation: Conversation; warnings: { field: string; message: string }[] }>(
+      "POST",
+      `/api/agents/${agentId}/conversations`,
+      title ? { title } : {},
+    ),
+  renameConversation: (id: string, title: string) =>
+    request<{ conversation: Conversation; warnings: { field: string; message: string }[] }>(
+      "PATCH",
+      `/api/conversations/${id}`,
+      { title },
+    ),
+  deleteConversation: (id: string) =>
+    request<void>("DELETE", `/api/conversations/${id}`),
+  listMessages: (id: string) =>
+    request<{ conversation: Conversation; messages: Message[] }>(
+      "GET",
+      `/api/conversations/${id}/messages`,
+    ),
 };
+
+// ----- Conversation types (F06) -----
+
+export interface Conversation {
+  id: string;
+  agent_id: string;
+  title: string;
+  created_at: string;
+  last_activity_at: string;
+  message_count: number;
+}
+
+export interface Message {
+  id: string;
+  conversation_id: string;
+  role: "user" | "assistant" | "system";
+  content: string;
+  status: "complete" | "stopped" | "error";
+  model: string | null;
+  token_count: number | null;
+  created_at: string;
+}
 
 // ----- Skill attachment types (F04) -----
 
