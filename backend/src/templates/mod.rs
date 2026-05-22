@@ -1,0 +1,5 @@
+pub mod catalog;
+pub mod model;
+pub mod service;
+
+pub use service::TemplatesService;
