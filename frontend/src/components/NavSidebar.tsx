@@ -3,7 +3,7 @@ import { Bot, Sparkles, BookOpen, MessageSquare, Settings } from "lucide-react";
 import { cn } from "@/lib/cn";
 
 const items = [
-  { to: "/agents", label: "Agents", icon: Bot, disabled: true },
+  { to: "/agents", label: "Agents", icon: Bot, disabled: false },
   { to: "/skills", label: "Skills", icon: Sparkles, disabled: true },
   { to: "/templates", label: "Templates", icon: BookOpen, disabled: true },
   { to: "/conversations", label: "Conversations", icon: MessageSquare, disabled: true },

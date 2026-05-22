@@ -10,6 +10,12 @@ const OnboardingPage = lazy(() =>
 const SettingsPage = lazy(() =>
   import("@/pages/Settings").then((m) => ({ default: m.SettingsPage })),
 );
+const AgentsList = lazy(() =>
+  import("@/pages/Agents").then((m) => ({ default: m.AgentsList })),
+);
+const AgentForm = lazy(() =>
+  import("@/pages/Agents").then((m) => ({ default: m.AgentForm })),
+);
 
 function Gate({ children }: { children: React.ReactNode }) {
   const { data, isLoading, error } = useSettings();
@@ -48,7 +54,10 @@ export function AppRoutes() {
       <Routes>
         <Route path="/onboarding" element={<Gate><OnboardingPage /></Gate>} />
         <Route element={<Gate><Layout /></Gate>}>
-          <Route path="/" element={<Navigate to="/settings" replace />} />
+          <Route path="/" element={<Navigate to="/agents" replace />} />
+          <Route path="/agents" element={<AgentsList />} />
+          <Route path="/agents/new" element={<AgentForm />} />
+          <Route path="/agents/:id" element={<AgentForm />} />
           <Route path="/settings/*" element={<SettingsPage />} />
         </Route>
       </Routes>

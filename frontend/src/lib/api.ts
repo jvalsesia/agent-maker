@@ -38,6 +38,71 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   return data as T;
 }
 
+// ----- Agents (F02) -----
+
+export interface AgentSummary {
+  id: string;
+  name: string;
+  preamble: string | null;
+  provider: ProviderName;
+  model: string;
+  has_override_key: boolean;
+  last_used_at: string | null;
+  created_at: string;
+  attached_skill_count: number;
+  conversation_count: number;
+}
+
+export interface Agent {
+  id: string;
+  name: string;
+  preamble: string | null;
+  system_prompt: string;
+  provider: ProviderName;
+  model: string;
+  has_override_key: boolean;
+  recent_n_override: number | null;
+  top_k_override: number | null;
+  created_at: string;
+  updated_at: string;
+  last_used_at: string | null;
+}
+
+export interface AgentWarning {
+  field: string;
+  message: string;
+}
+
+export interface AgentResponse {
+  agent: Agent;
+  warnings: AgentWarning[];
+}
+
+export interface AgentUpsert {
+  name: string;
+  preamble?: string | null;
+  system_prompt: string;
+  provider: ProviderName;
+  model: string;
+  recent_n_override?: number | null;
+  top_k_override?: number | null;
+}
+
+export type AgentSort = "name" | "last_used" | "created";
+export type AgentOrder = "asc" | "desc";
+
+export interface ListAgentsParams {
+  sort?: AgentSort;
+  order?: AgentOrder;
+  q?: string;
+}
+
+function qs(params: Record<string, string | undefined>): string {
+  const entries = Object.entries(params).filter(([, v]) => v !== undefined && v !== "");
+  if (entries.length === 0) return "";
+  return "?" + entries.map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v as string)}`).join("&");
+}
+
 export const api = {
   getSettings: () => request<SettingsDto>("GET", "/api/settings"),
   putSettings: (patch: Partial<{
@@ -57,4 +122,29 @@ export const api = {
     ),
   wipe: () => request<void>("POST", "/api/settings/data/wipe", { confirm: "WIPE" }),
   health: () => request<{ status: string; db: string; key_store: string }>("GET", "/api/health"),
+
+  listAgents: (p: ListAgentsParams = {}) =>
+    request<{ agents: AgentSummary[] }>(
+      "GET",
+      `/api/agents${qs({ sort: p.sort, order: p.order, q: p.q })}`,
+    ),
+  getAgent: (id: string) => request<{ agent: Agent }>("GET", `/api/agents/${id}`),
+  createAgent: (body: AgentUpsert) => request<AgentResponse>("POST", "/api/agents", body),
+  updateAgent: (id: string, body: AgentUpsert) =>
+    request<AgentResponse>("PUT", `/api/agents/${id}`, body),
+  deleteAgent: (id: string) => request<void>("DELETE", `/api/agents/${id}`),
+  cloneAgent: (id: string, name?: string) =>
+    request<AgentResponse>("POST", `/api/agents/${id}/clone`, name ? { name } : {}),
+  saveAgentKey: (id: string, key: string) =>
+    request<{ has_override_key: true; key_masked: string }>(
+      "PUT",
+      `/api/agents/${id}/key`,
+      { key },
+    ),
+  deleteAgentKey: (id: string) => request<void>("DELETE", `/api/agents/${id}/key`),
+  getAgentModels: (provider: ProviderName) =>
+    request<{ provider: ProviderName; models: string[] }>(
+      "GET",
+      `/api/agents/models?provider=${provider}`,
+    ),
 };

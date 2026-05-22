@@ -1,3 +1,4 @@
+pub mod agents;
 pub mod config;
 pub mod db;
 pub mod error;
@@ -7,7 +8,9 @@ pub mod secrets;
 pub mod settings;
 pub mod telemetry;
 
-use crate::{llm::ProviderRegistry, routes::AppState, settings::SettingsService};
+use crate::{
+    agents::AgentsService, llm::ProviderRegistry, routes::AppState, settings::SettingsService,
+};
 use axum::Router;
 use sqlx::PgPool;
 use std::{path::Path, sync::Arc};
@@ -17,8 +20,9 @@ use std::{path::Path, sync::Arc};
 pub fn build_app(pool: PgPool, secrets_home: &Path) -> Router {
     let secrets = Arc::new(secrets::auto(secrets_home));
     let providers = ProviderRegistry::new(secrets.clone());
-    let settings_svc = SettingsService::new(pool, secrets);
-    let state = Arc::new(AppState { settings: settings_svc, providers });
+    let settings_svc = SettingsService::new(pool.clone(), secrets.clone());
+    let agents_svc = AgentsService::new(pool, secrets);
+    let state = Arc::new(AppState { settings: settings_svc, providers, agents: agents_svc });
     routes::router(state)
 }
 
@@ -26,7 +30,8 @@ pub fn build_app(pool: PgPool, secrets_home: &Path) -> Router {
 /// `FileStore` under tempdir) so tests don't touch the developer's OS keychain.
 pub fn build_app_with_store(pool: PgPool, secrets: Arc<secrets::AnyStore>) -> Router {
     let providers = ProviderRegistry::new(secrets.clone());
-    let settings_svc = SettingsService::new(pool, secrets);
-    let state = Arc::new(AppState { settings: settings_svc, providers });
+    let settings_svc = SettingsService::new(pool.clone(), secrets.clone());
+    let agents_svc = AgentsService::new(pool, secrets);
+    let state = Arc::new(AppState { settings: settings_svc, providers, agents: agents_svc });
     routes::router(state)
 }
