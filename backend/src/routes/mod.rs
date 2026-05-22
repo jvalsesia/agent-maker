@@ -1,5 +1,6 @@
 pub mod agents;
 pub mod attachments;
+pub mod conversations;
 pub mod settings;
 pub mod skills;
 pub mod templates;
@@ -31,7 +32,8 @@ pub fn router(state: Arc<AppState>) -> Router {
                 .merge(agents::routes())
                 .merge(skills::routes())
                 .merge(attachments::routes())
-                .merge(templates::routes()),
+                .merge(templates::routes())
+                .merge(conversations::routes()),
         )
         .with_state(state)
 }
