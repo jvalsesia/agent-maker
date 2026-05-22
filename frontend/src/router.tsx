@@ -16,6 +16,12 @@ const AgentsList = lazy(() =>
 const AgentForm = lazy(() =>
   import("@/pages/Agents").then((m) => ({ default: m.AgentForm })),
 );
+const SkillsList = lazy(() =>
+  import("@/pages/Skills").then((m) => ({ default: m.SkillsList })),
+);
+const SkillForm = lazy(() =>
+  import("@/pages/Skills").then((m) => ({ default: m.SkillForm })),
+);
 
 function Gate({ children }: { children: React.ReactNode }) {
   const { data, isLoading, error } = useSettings();
@@ -58,6 +64,9 @@ export function AppRoutes() {
           <Route path="/agents" element={<AgentsList />} />
           <Route path="/agents/new" element={<AgentForm />} />
           <Route path="/agents/:id" element={<AgentForm />} />
+          <Route path="/skills" element={<SkillsList />} />
+          <Route path="/skills/new" element={<SkillForm />} />
+          <Route path="/skills/:id" element={<SkillForm />} />
           <Route path="/settings/*" element={<SettingsPage />} />
         </Route>
       </Routes>

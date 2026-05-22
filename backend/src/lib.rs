@@ -6,10 +6,12 @@ pub mod llm;
 pub mod routes;
 pub mod secrets;
 pub mod settings;
+pub mod skills;
 pub mod telemetry;
 
 use crate::{
     agents::AgentsService, llm::ProviderRegistry, routes::AppState, settings::SettingsService,
+    skills::SkillsService,
 };
 use axum::Router;
 use sqlx::PgPool;
@@ -21,8 +23,14 @@ pub fn build_app(pool: PgPool, secrets_home: &Path) -> Router {
     let secrets = Arc::new(secrets::auto(secrets_home));
     let providers = ProviderRegistry::new(secrets.clone());
     let settings_svc = SettingsService::new(pool.clone(), secrets.clone());
-    let agents_svc = AgentsService::new(pool, secrets);
-    let state = Arc::new(AppState { settings: settings_svc, providers, agents: agents_svc });
+    let agents_svc = AgentsService::new(pool.clone(), secrets);
+    let skills_svc = SkillsService::new(pool);
+    let state = Arc::new(AppState {
+        settings: settings_svc,
+        providers,
+        agents: agents_svc,
+        skills: skills_svc,
+    });
     routes::router(state)
 }
 
@@ -31,7 +39,13 @@ pub fn build_app(pool: PgPool, secrets_home: &Path) -> Router {
 pub fn build_app_with_store(pool: PgPool, secrets: Arc<secrets::AnyStore>) -> Router {
     let providers = ProviderRegistry::new(secrets.clone());
     let settings_svc = SettingsService::new(pool.clone(), secrets.clone());
-    let agents_svc = AgentsService::new(pool, secrets);
-    let state = Arc::new(AppState { settings: settings_svc, providers, agents: agents_svc });
+    let agents_svc = AgentsService::new(pool.clone(), secrets);
+    let skills_svc = SkillsService::new(pool);
+    let state = Arc::new(AppState {
+        settings: settings_svc,
+        providers,
+        agents: agents_svc,
+        skills: skills_svc,
+    });
     routes::router(state)
 }
