@@ -147,4 +147,69 @@ export const api = {
       "GET",
       `/api/agents/models?provider=${provider}`,
     ),
+
+  // ----- Skills (F03) -----
+  listSkills: (p: ListSkillsParams = {}) =>
+    request<{ skills: SkillSummary[] }>(
+      "GET",
+      `/api/skills${qs({ sort: p.sort, order: p.order, q: p.q })}`,
+    ),
+  getSkill: (id: string) =>
+    request<{ skill: Skill; using_agents: UsingAgent[] }>("GET", `/api/skills/${id}`),
+  createSkill: (body: SkillUpsert) =>
+    request<SkillResponse>("POST", "/api/skills", body),
+  updateSkill: (id: string, body: SkillUpsert) =>
+    request<SkillResponse>("PUT", `/api/skills/${id}`, body),
+  deleteSkill: (id: string) => request<void>("DELETE", `/api/skills/${id}`),
+  cloneSkill: (id: string, name?: string) =>
+    request<SkillResponse>("POST", `/api/skills/${id}/clone`, name ? { name } : {}),
 };
+
+// ----- Skills types (F03) -----
+
+export interface Skill {
+  id: string;
+  name: string;
+  description: string;
+  body: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SkillSummary {
+  id: string;
+  name: string;
+  description: string;
+  created_at: string;
+  updated_at: string;
+  attached_agent_count: number;
+}
+
+export interface UsingAgent {
+  id: string;
+  name: string;
+}
+
+export interface SkillWarning {
+  field: string;
+  message: string;
+}
+
+export interface SkillResponse {
+  skill: Skill;
+  warnings: SkillWarning[];
+}
+
+export interface SkillUpsert {
+  name: string;
+  description: string;
+  body: string;
+}
+
+export type SkillSort = "name" | "attached" | "created";
+
+export interface ListSkillsParams {
+  sort?: SkillSort;
+  order?: AgentOrder;
+  q?: string;
+}
