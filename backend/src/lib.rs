@@ -1,5 +1,6 @@
 pub mod agents;
 pub mod config;
+pub mod conversations;
 pub mod db;
 pub mod error;
 pub mod llm;
@@ -12,8 +13,9 @@ pub mod telemetry;
 pub mod templates;
 
 use crate::{
-    agents::AgentsService, llm::ProviderRegistry, routes::AppState, settings::SettingsService,
-    skill_attachments::AttachmentsService, skills::SkillsService, templates::TemplatesService,
+    agents::AgentsService, conversations::ConversationsService, llm::ProviderRegistry,
+    routes::AppState, settings::SettingsService, skill_attachments::AttachmentsService,
+    skills::SkillsService, templates::TemplatesService,
 };
 use axum::Router;
 use sqlx::PgPool;
@@ -29,7 +31,8 @@ pub fn build_app(pool: PgPool, secrets_home: &Path) -> Router {
     let agents_svc = AgentsService::new(pool.clone(), secrets);
     let skills_svc = SkillsService::new(pool.clone());
     let attachments_svc = AttachmentsService::new(pool.clone());
-    let templates_svc = TemplatesService::new(pool);
+    let templates_svc = TemplatesService::new(pool.clone());
+    let conversations_svc = ConversationsService::new(pool);
     let state = Arc::new(AppState {
         settings: settings_svc,
         providers,
@@ -37,6 +40,7 @@ pub fn build_app(pool: PgPool, secrets_home: &Path) -> Router {
         skills: skills_svc,
         attachments: attachments_svc,
         templates: templates_svc,
+        conversations: conversations_svc,
     });
     routes::router(state)
 }
@@ -50,7 +54,8 @@ pub fn build_app_with_store(pool: PgPool, secrets: Arc<secrets::AnyStore>) -> Ro
     let agents_svc = AgentsService::new(pool.clone(), secrets);
     let skills_svc = SkillsService::new(pool.clone());
     let attachments_svc = AttachmentsService::new(pool.clone());
-    let templates_svc = TemplatesService::new(pool);
+    let templates_svc = TemplatesService::new(pool.clone());
+    let conversations_svc = ConversationsService::new(pool);
     let state = Arc::new(AppState {
         settings: settings_svc,
         providers,
@@ -58,6 +63,7 @@ pub fn build_app_with_store(pool: PgPool, secrets: Arc<secrets::AnyStore>) -> Ro
         skills: skills_svc,
         attachments: attachments_svc,
         templates: templates_svc,
+        conversations: conversations_svc,
     });
     routes::router(state)
 }

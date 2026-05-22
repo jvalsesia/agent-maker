@@ -25,6 +25,9 @@ const SkillForm = lazy(() =>
 const TemplatesGallery = lazy(() =>
   import("@/pages/Templates").then((m) => ({ default: m.TemplatesGallery })),
 );
+const ChatPage = lazy(() =>
+  import("@/pages/Chat").then((m) => ({ default: m.ChatPage })),
+);
 
 function Gate({ children }: { children: React.ReactNode }) {
   const { data, isLoading, error } = useSettings();
@@ -71,6 +74,7 @@ export function AppRoutes() {
           <Route path="/skills/new" element={<SkillForm />} />
           <Route path="/skills/:id" element={<SkillForm />} />
           <Route path="/templates" element={<TemplatesGallery />} />
+          <Route path="/agents/:id/chat" element={<ChatPage />} />
           <Route path="/settings/*" element={<SettingsPage />} />
         </Route>
       </Routes>

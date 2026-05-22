@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Bot, Copy, Plus, Trash2 } from "lucide-react";
+import { Bot, Copy, MessageSquare, Plus, Trash2 } from "lucide-react";
 import { ApiError, type AgentSort } from "@/lib/api";
 import { useAgents, useCloneAgent, useDeleteAgent } from "@/hooks/useAgents";
 import { Button } from "@/components/ui/button";
@@ -117,6 +117,14 @@ export function AgentsList() {
                 )}
               </Link>
               <div className="flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => navigate(`/agents/${a.id}/chat`)}
+                  aria-label="Open chat"
+                >
+                  <MessageSquare className="h-4 w-4" />
+                </Button>
                 <Button variant="ghost" size="sm" onClick={() => onClone(a.id)}>
                   <Copy className="h-4 w-4" />
                 </Button>
