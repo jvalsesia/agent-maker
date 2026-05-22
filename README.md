@@ -10,7 +10,7 @@ An operating system for personal AI. Build custom agents, attach reusable skills
 - **Frontend:** React + Vite + TypeScript + Tailwind + TanStack Query + shadcn/ui
 - **Database:** PostgreSQL 16 with `pgvector` (via Docker Compose)
 - **Streaming:** Server-Sent Events
-- **Secrets:** OS keychain (`keyring` crate) with AES-256-GCM file fallback
+- **Secrets:** OS keychain (`keyring` crate) with AES-256-GCM file fallback — see [`docs/F01-app-foundation-and-settings/secret-store.md`](docs/F01-app-foundation-and-settings/secret-store.md) for when to use which
 
 ## Repository layout
 
