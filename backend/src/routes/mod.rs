@@ -1,10 +1,11 @@
 pub mod agents;
+pub mod attachments;
 pub mod settings;
 pub mod skills;
 
 use crate::{
     agents::AgentsService, llm::ProviderRegistry, settings::SettingsService,
-    skills::SkillsService,
+    skill_attachments::AttachmentsService, skills::SkillsService,
 };
 use axum::Router;
 use std::sync::Arc;
@@ -15,6 +16,7 @@ pub struct AppState {
     pub providers: ProviderRegistry,
     pub agents: AgentsService,
     pub skills: SkillsService,
+    pub attachments: AttachmentsService,
 }
 
 pub fn router(state: Arc<AppState>) -> Router {
@@ -23,7 +25,8 @@ pub fn router(state: Arc<AppState>) -> Router {
             "/api",
             settings::routes()
                 .merge(agents::routes())
-                .merge(skills::routes()),
+                .merge(skills::routes())
+                .merge(attachments::routes()),
         )
         .with_state(state)
 }

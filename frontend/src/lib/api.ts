@@ -163,7 +163,44 @@ export const api = {
   deleteSkill: (id: string) => request<void>("DELETE", `/api/skills/${id}`),
   cloneSkill: (id: string, name?: string) =>
     request<SkillResponse>("POST", `/api/skills/${id}/clone`, name ? { name } : {}),
+
+  // ----- Skill attachments (F04) -----
+  listAttachedSkills: (agentId: string) =>
+    request<{ attached: AttachedSkill[] }>("GET", `/api/agents/${agentId}/skills`),
+  replaceAttachedSkills: (agentId: string, skill_ids: string[]) =>
+    request<AttachmentsResponse>("PUT", `/api/agents/${agentId}/skills`, { skill_ids }),
+  detachSkill: (agentId: string, skillId: string) =>
+    request<void>("DELETE", `/api/agents/${agentId}/skills/${skillId}`),
+  getComposePreview: (agentId: string) =>
+    request<ComposePreview>("GET", `/api/agents/${agentId}/compose`),
 };
+
+// ----- Skill attachment types (F04) -----
+
+export interface AttachedSkill {
+  skill_id: string;
+  name: string;
+  description: string;
+  position: number;
+}
+
+export interface AttachmentWarning {
+  field: string;
+  message: string;
+}
+
+export interface AttachmentsResponse {
+  attached: AttachedSkill[];
+  warnings: AttachmentWarning[];
+}
+
+export interface ComposePreview {
+  composed: string;
+  length_chars: number;
+  model_context_chars: number;
+  fraction: number;
+  warning: string | null;
+}
 
 // ----- Skills types (F03) -----
 
