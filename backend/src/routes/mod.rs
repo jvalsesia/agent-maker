@@ -7,8 +7,8 @@ pub mod templates;
 
 use crate::{
     agents::AgentsService, conversations::ConversationsService, llm::ProviderRegistry,
-    settings::SettingsService, skill_attachments::AttachmentsService, skills::SkillsService,
-    templates::TemplatesService,
+    memory::MemoryService, settings::SettingsService, skill_attachments::AttachmentsService,
+    skills::SkillsService, templates::TemplatesService,
 };
 use axum::Router;
 use std::sync::Arc;
@@ -22,6 +22,7 @@ pub struct AppState {
     pub attachments: AttachmentsService,
     pub templates: TemplatesService,
     pub conversations: ConversationsService,
+    pub memory: MemoryService,
 }
 
 pub fn router(state: Arc<AppState>) -> Router {

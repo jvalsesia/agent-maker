@@ -4,6 +4,7 @@ pub mod conversations;
 pub mod db;
 pub mod error;
 pub mod llm;
+pub mod memory;
 pub mod routes;
 pub mod secrets;
 pub mod settings;
@@ -14,8 +15,8 @@ pub mod templates;
 
 use crate::{
     agents::AgentsService, conversations::ConversationsService, llm::ProviderRegistry,
-    routes::AppState, settings::SettingsService, skill_attachments::AttachmentsService,
-    skills::SkillsService, templates::TemplatesService,
+    memory::{MemoryService, OpenAiEmbedding}, routes::AppState, settings::SettingsService,
+    skill_attachments::AttachmentsService, skills::SkillsService, templates::TemplatesService,
 };
 use axum::Router;
 use sqlx::PgPool;
@@ -28,11 +29,13 @@ pub fn build_app(pool: PgPool, secrets_home: &Path) -> Router {
     let secrets = Arc::new(secrets::auto(secrets_home));
     let providers = ProviderRegistry::new(secrets.clone());
     let settings_svc = SettingsService::new(pool.clone(), secrets.clone());
-    let agents_svc = AgentsService::new(pool.clone(), secrets);
+    let agents_svc = AgentsService::new(pool.clone(), secrets.clone());
     let skills_svc = SkillsService::new(pool.clone());
     let attachments_svc = AttachmentsService::new(pool.clone());
     let templates_svc = TemplatesService::new(pool.clone());
-    let conversations_svc = ConversationsService::new(pool);
+    let conversations_svc = ConversationsService::new(pool.clone());
+    let memory_svc =
+        MemoryService::new(pool, Arc::new(OpenAiEmbedding::new(secrets)));
     let state = Arc::new(AppState {
         settings: settings_svc,
         providers,
@@ -41,6 +44,7 @@ pub fn build_app(pool: PgPool, secrets_home: &Path) -> Router {
         attachments: attachments_svc,
         templates: templates_svc,
         conversations: conversations_svc,
+        memory: memory_svc,
     });
     routes::router(state)
 }
@@ -51,11 +55,13 @@ pub fn build_app_with_store(pool: PgPool, secrets: Arc<secrets::AnyStore>) -> Ro
     templates::catalog::validate().expect("starter template catalog must validate");
     let providers = ProviderRegistry::new(secrets.clone());
     let settings_svc = SettingsService::new(pool.clone(), secrets.clone());
-    let agents_svc = AgentsService::new(pool.clone(), secrets);
+    let agents_svc = AgentsService::new(pool.clone(), secrets.clone());
     let skills_svc = SkillsService::new(pool.clone());
     let attachments_svc = AttachmentsService::new(pool.clone());
     let templates_svc = TemplatesService::new(pool.clone());
-    let conversations_svc = ConversationsService::new(pool);
+    let conversations_svc = ConversationsService::new(pool.clone());
+    let memory_svc =
+        MemoryService::new(pool, Arc::new(OpenAiEmbedding::new(secrets)));
     let state = Arc::new(AppState {
         settings: settings_svc,
         providers,
@@ -64,6 +70,7 @@ pub fn build_app_with_store(pool: PgPool, secrets: Arc<secrets::AnyStore>) -> Ro
         attachments: attachments_svc,
         templates: templates_svc,
         conversations: conversations_svc,
+        memory: memory_svc,
     });
     routes::router(state)
 }
