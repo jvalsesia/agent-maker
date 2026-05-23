@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Eraser, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/cn";
@@ -10,7 +11,9 @@ import {
   useDeleteConversation,
   useRenameConversation,
 } from "@/hooks/useConversations";
+import { useClearMemory } from "@/hooks/useMemory";
 import { DeleteConversationDialog } from "./DeleteConversationDialog";
+import { ClearMemoryDialog } from "./ClearMemoryDialog";
 
 interface Props {
   agentId: string;
@@ -27,6 +30,25 @@ export function ConversationSidebar({ agentId, conversations, activeId, onSelect
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
   const [pendingDelete, setPendingDelete] = useState<Conversation | null>(null);
+  const [pendingClear, setPendingClear] = useState<Conversation | null>(null);
+
+  const qc = useQueryClient();
+  const clearMemory = useClearMemory(pendingClear?.id ?? "");
+
+  const onConfirmClear = async () => {
+    if (!pendingClear) return;
+    const id = pendingClear.id;
+    try {
+      const r = await clearMemory.mutateAsync();
+      toast.success(`Cleared ${r.removed} embedded turn${r.removed === 1 ? "" : "s"}`);
+      qc.invalidateQueries({ queryKey: ["memory-stats", id] });
+      setPendingClear(null);
+    } catch (e) {
+      toast.error(
+        e instanceof ApiError ? e.body.error.message : "Couldn't clear memory",
+      );
+    }
+  };
 
   const onCreate = async () => {
     try {
@@ -131,6 +153,15 @@ export function ConversationSidebar({ agentId, conversations, activeId, onSelect
                       variant="ghost"
                       size="sm"
                       className="h-7 w-7 p-0"
+                      onClick={() => setPendingClear(c)}
+                      aria-label="Clear memory"
+                    >
+                      <Eraser className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 w-7 p-0"
                       onClick={() => setPendingDelete(c)}
                       aria-label="Delete"
                     >
@@ -150,6 +181,15 @@ export function ConversationSidebar({ agentId, conversations, activeId, onSelect
         onClose={() => setPendingDelete(null)}
         onConfirm={onConfirmDelete}
         pending={del.isPending}
+      />
+
+      <ClearMemoryDialog
+        open={!!pendingClear}
+        conversationId={pendingClear?.id ?? null}
+        conversationTitle={pendingClear?.title ?? ""}
+        pending={clearMemory.isPending}
+        onClose={() => setPendingClear(null)}
+        onConfirm={onConfirmClear}
       />
     </aside>
   );

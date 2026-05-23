@@ -8,6 +8,7 @@ use axum::{
     extract::{Path, State},
     routing::{delete, post},
 };
+use serde_json::json;
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -21,7 +22,15 @@ pub fn routes() -> Router<Arc<AppState>> {
             "/conversations/:id/memory/embed-pending",
             post(embed_pending),
         )
-        .route("/conversations/:id/memory", delete(clear))
+        .route("/conversations/:id/memory", delete(clear).get(stats))
+}
+
+async fn stats(
+    State(s): State<Arc<AppState>>,
+    Path(id): Path<Uuid>,
+) -> AppResult<Json<serde_json::Value>> {
+    let embedded = s.memory.stats(id).await?;
+    Ok(Json(json!({ "embedded": embedded })))
 }
 
 async fn query(

@@ -279,6 +279,27 @@ impl MemoryService {
         Ok(block)
     }
 
+    /// Returns the number of embedded turns currently stored for the conversation.
+    pub async fn stats(&self, conversation_id: Uuid) -> AppResult<i64> {
+        let exists: Option<Uuid> =
+            sqlx::query_scalar("SELECT id FROM conversations WHERE id = $1")
+                .bind(conversation_id)
+                .fetch_optional(&self.pool)
+                .await?;
+        if exists.is_none() {
+            return Err(AppError::NotFound(format!(
+                "conversation {conversation_id}"
+            )));
+        }
+        let n: i64 = sqlx::query_scalar(
+            "SELECT COUNT(*) FROM message_embeddings WHERE conversation_id = $1",
+        )
+        .bind(conversation_id)
+        .fetch_one(&self.pool)
+        .await?;
+        Ok(n)
+    }
+
     pub async fn clear(&self, conversation_id: Uuid) -> AppResult<ClearReport> {
         let exists: Option<Uuid> =
             sqlx::query_scalar("SELECT id FROM conversations WHERE id = $1")
