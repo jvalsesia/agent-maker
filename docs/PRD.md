@@ -121,6 +121,13 @@ agent-maker turns the LEGO metaphor into a real product. Personas (Agents) and r
 - As a user, I want to see which earlier turns the agent recalled for the current message (a "what I remembered" indicator), so that I trust and understand the memory system
 - As a user, I want the option to clear an agent's long-term memory for a conversation, so that I can reset context when needed
 
+### F09. Internationalization (i18n)
+- As a user, I want to choose my interface language from settings and have the whole app — navigation, buttons, forms, settings, and error messages — display in that language, so that I can work in my native language
+- As a Portuguese-speaking user, I want the app to default to my browser language on first launch, so that I don't have to hunt for a language switch
+- As a new user, I want the starter template library to offer agents and skills authored in my language, so that the examples are immediately usable
+- As a user, I want my agents to reply in my chosen language by default, so that I don't have to instruct each agent about language separately
+- As a power user, I want to override the response language per agent, so that I can keep a language-specific agent regardless of my UI locale
+
 ## 6. Functionalities
 
 ### F01. App Foundation and Settings
@@ -346,6 +353,39 @@ agent-maker turns the LEGO metaphor into a real product. Personas (Agents) and r
 - Vector retrieval fails: the request falls back to recent-window-only and surfaces a small inline notice "memory unavailable for this turn"
 - Clear long-term memory fails: toast with retry; nothing partially deleted
 
+### F09. Internationalization (i18n)
+
+**Consumes:**
+- F01: global app-level settings (locale stored alongside theme in Appearance) and the multi-provider LLM abstraction
+- F02: agent definitions (adds a per-agent response-language setting)
+- F05: starter template catalog (localized template variants)
+- F07: prompt composition pipeline (locale injection into the request)
+
+**Provides:**
+- A resolved active locale and translation lookup available to every frontend view; a locale directive injected into composed LLM requests
+
+**Capabilities:**
+- Supported locales in v1: English (`en`) and Brazilian Portuguese (`pt-BR`); architecture supports adding locales by dropping in a new message catalog without code changes
+- Frontend i18n layer (message catalogs keyed by locale) covering all UI chrome: navigation, buttons, form labels and placeholders, validation and error messages, toasts, confirmation modals, and empty states
+- Locale resolution order on first launch: persisted user setting → browser `navigator.language` (mapped to nearest supported locale) → fallback to `en`
+- Active locale persisted in the F01 settings store and applied across reloads without flicker
+- Locale-aware formatting of dates, times, and numbers (e.g., conversation last-activity timestamps, similarity scores) using the active locale
+- Localized starter templates (F05): each bundled agent/skill provides per-locale `name`, `description`, and prompt/instruction body; the library surfaces the variant matching the active locale and falls back to `en` when a translation is missing
+- Locale-aware agent responses: F07 prompt composition appends a language directive ("Respond in <language>") derived from the agent's response-language setting, which defaults to the active UI locale
+- Per-agent response-language override (F02 advanced settings): `auto` (follow UI locale) or a specific locale; overrides the UI-locale default at request time
+- Translation catalogs are bundled with the app and loaded offline; no network call required to switch languages
+
+**Experience:**
+- Appearance section of Settings gains a "Language" selector listing supported locales by their native name (e.g., "English", "Português (Brasil)")
+- Switching language updates the UI immediately without a full reload
+- Agent advanced settings gain a "Response language" dropdown (default "Automatic — match app language")
+- Template gallery cards and preview drawers render in the active locale; a small badge indicates when a template is shown in its `en` fallback
+
+**Error Handling:**
+- Missing translation key: the UI falls back to the `en` string (never shows a raw key) and logs the gap in development builds
+- Unsupported persisted/browser locale: silently maps to the nearest supported locale, defaulting to `en`
+- Locale setting save fails: toast with retry; the previously active locale remains in effect
+
 ## 7. Out of Scope
 
 **Multi-user, sharing, and collaboration**
@@ -390,6 +430,7 @@ agent-maker turns the LEGO metaphor into a real product. Personas (Agents) and r
 | F06 | Conversation Management | 1 | F02 |
 | F08 | Memory System | 1 | F06 |
 | F07 | Chat Runtime | 1 | F02, F04, F06, F08 |
+| F09 | Internationalization (i18n) | 2 | F01, F02, F05, F07 |
 
 ### Foundation Features
 These features set up shared project infrastructure. In a greenfield project they must be implemented sequentially before or alongside any feature that depends on them:
@@ -405,6 +446,7 @@ Features within the same wave can be built in parallel. A wave starts only after
 - **Wave 3**: F04, F06
 - **Wave 4**: F08
 - **Wave 5**: F07
+- **Wave 6**: F09
 
 ### Priority levels
 - **1** = Essential — product does not work without it
@@ -424,6 +466,9 @@ graph TD
   F04 --> F07
   F06 --> F07
   F08 --> F07
+  F01 --> F09[F09 i18n]
+  F05 --> F09
+  F07 --> F09
 ```
 
 ## 9. Acceptance Criteria
@@ -492,6 +537,17 @@ graph TD
 - [ ] When vector retrieval fails, the request falls back to recent-window-only with an inline notice and the response still succeeds
 - [ ] N and K values are bounded (N in [4, 30], K in [0, 10]) and configurable globally and per agent
 
+### F09. Internationalization (i18n)
+- [ ] A "Language" selector in Settings → Appearance lists at least English and Português (Brasil) by native name and persists the choice across reloads
+- [ ] On first launch with no saved preference, the app resolves the locale from the browser language, falling back to English for unsupported languages
+- [ ] Switching language updates all UI chrome (nav, buttons, form labels, errors, toasts, confirmations) immediately without a full reload
+- [ ] Dates, times, and numbers render using the active locale's formatting
+- [ ] The starter template library surfaces locale-matched agent/skill variants and falls back to English (with an indicator) when a translation is missing
+- [ ] With an agent's response language set to "Automatic", the composed F07 prompt includes a directive to respond in the active UI locale's language
+- [ ] A per-agent response-language override forces that language regardless of the UI locale
+- [ ] A missing translation key renders the English string, never a raw key
+- [ ] Language switching and template localization work fully offline (no network call)
+
 ### Cross-Feature Integration
 - [ ] Agents created in F02 successfully use the LLM provider clients and default keys configured in F01 when chatting in F07
 - [ ] Skills created in F03 appear in the F04 attachment picker, and their instruction bodies are concatenated into the F07 composed prompt in the attachment order maintained by F04
@@ -500,3 +556,4 @@ graph TD
 - [ ] The recent-N verbatim turns and top-K retrieved turns provided by F08 are included in the F07 request and visibly attributed in the UI
 - [ ] Editing a skill body in F03 changes the next composed prompt produced by F07 for every agent that has the skill attached via F04
 - [ ] Provider/model selected per agent in F02 overrides the F01 defaults when F07 dispatches a request
+- [ ] The active locale from F09 propagates into the F07 prompt as a response-language directive and selects the F05 template variant shown to the user
