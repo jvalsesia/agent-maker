@@ -24,6 +24,12 @@ pub enum AppError {
     #[error("confirmation required")]
     ConfirmationRequired,
 
+    #[error("conflict: {0}")]
+    Conflict(String),
+
+    #[error("context too large: {0}")]
+    ContextTooLarge(String),
+
     #[error("key store error: {0}")]
     KeyStore(String),
 
@@ -52,6 +58,8 @@ impl AppError {
             AppError::NotFound(_) => "not_found".into(),
             AppError::TemplateNotFound(_) => "template_not_found".into(),
             AppError::ConfirmationRequired => "confirmation_required".into(),
+            AppError::Conflict(_) => "conflict".into(),
+            AppError::ContextTooLarge(_) => "context_too_large".into(),
             AppError::KeyStore(_) => "key_write_failed".into(),
             AppError::Database(_) => "database_error".into(),
             AppError::Io(_) => "io_error".into(),
@@ -65,6 +73,8 @@ impl AppError {
             AppError::Provider { status, .. } => *status,
             AppError::NotFound(_) => StatusCode::NOT_FOUND,
             AppError::TemplateNotFound(_) => StatusCode::NOT_FOUND,
+            AppError::Conflict(_) => StatusCode::CONFLICT,
+            AppError::ContextTooLarge(_) => StatusCode::UNPROCESSABLE_ENTITY,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }

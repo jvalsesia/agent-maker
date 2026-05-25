@@ -22,7 +22,25 @@ pub struct Message {
     pub status: String,
     pub model: Option<String>,
     pub token_count: Option<i32>,
+    pub finish_reason: Option<String>,
     pub created_at: DateTime<Utc>,
+    /// Earlier turns recalled by F08 for this (assistant) message. Empty for
+    /// user messages and assistant turns composed without retrieval. Not a
+    /// column — populated by `list_messages`.
+    #[sqlx(skip)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub recalled: Vec<RecalledRef>,
+}
+
+/// A reference to an earlier message recalled into an assistant turn's prompt,
+/// shown under the "Recalled N earlier turns" indicator.
+#[derive(Debug, Clone, Serialize, FromRow)]
+pub struct RecalledRef {
+    pub message_id: Uuid,
+    pub role: String,
+    pub content: String,
+    pub created_at: DateTime<Utc>,
+    pub similarity: f32,
 }
 
 #[derive(Debug, Clone, Deserialize, Default)]
@@ -31,6 +49,30 @@ pub struct CreateInput {
     #[serde(default)]
     pub title: Option<String>,
 }
+
+/// Fields for inserting a new message via `ConversationsService::insert_message`.
+#[derive(Debug, Clone)]
+pub struct NewMessage<'a> {
+    pub role: &'a str,
+    pub content: &'a str,
+    pub status: &'a str,
+    pub model: Option<&'a str>,
+    pub token_count: Option<i32>,
+    pub finish_reason: Option<&'a str>,
+}
+
+impl<'a> NewMessage<'a> {
+    pub fn user(content: &'a str) -> Self {
+        Self { role: "user", content, status: "complete", model: None, token_count: None, finish_reason: None }
+    }
+    pub fn assistant(content: &'a str, status: &'a str, model: Option<&'a str>) -> Self {
+        Self { role: "assistant", content, status, model, token_count: None, finish_reason: None }
+    }
+}
+
+/// Max length of an auto-generated conversation title (F06 rule, applied on the
+/// first user message sent through the chat runtime).
+pub const AUTO_TITLE_MAX: usize = 60;
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]

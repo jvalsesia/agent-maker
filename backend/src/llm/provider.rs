@@ -1,5 +1,7 @@
 use async_trait::async_trait;
+use futures::Stream;
 use serde::{Deserialize, Serialize};
+use std::pin::Pin;
 use std::str::FromStr;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -47,6 +49,69 @@ pub struct TestOutcome {
     pub latency_ms: u128,
 }
 
+/// One message in a chat request. `System` content is folded into the
+/// provider's system parameter by each implementation, so callers typically
+/// pass only `User`/`Assistant` turns plus a separate `system` string.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ChatRole {
+    System,
+    User,
+    Assistant,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ChatMessage {
+    pub role: ChatRole,
+    pub content: String,
+}
+
+/// A fully composed chat request ready to dispatch. The composer (F07) builds
+/// `system` and `messages`; `api_key` overrides the provider's default key
+/// (per-agent key fallback), and `base_url` targets a local endpoint.
+#[derive(Debug, Clone)]
+pub struct ChatRequest {
+    pub model: String,
+    pub system: Option<String>,
+    pub messages: Vec<ChatMessage>,
+    pub base_url: Option<String>,
+    pub api_key: Option<String>,
+    pub max_tokens: u32,
+}
+
+/// Token usage as reported by a provider. Fields are `0` when unknown; the
+/// caller merges successive deltas by keeping the last non-zero value.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct ChatUsage {
+    pub input_tokens: u32,
+    pub output_tokens: u32,
+}
+
+/// One streamed increment: a text delta plus optional usage / finish metadata
+/// that providers attach to their final frames.
+#[derive(Debug, Clone, Default)]
+pub struct ChatDelta {
+    pub content: String,
+    pub usage: Option<ChatUsage>,
+    pub finish_reason: Option<String>,
+}
+
+pub type ChatStream = Pin<Box<dyn Stream<Item = Result<ChatDelta, ChatError>> + Send>>;
+
+#[derive(Debug, thiserror::Error)]
+pub enum ChatError {
+    #[error("no key configured for {0}")]
+    NoKey(&'static str),
+    #[error("provider returned {status}: {body}")]
+    Http { status: u16, body: String },
+    #[error("network error: {0}")]
+    Network(String),
+    #[error("backend error: {0}")]
+    Backend(String),
+    #[error("stream error: {0}")]
+    Stream(String),
+}
+
 #[async_trait]
 pub trait LlmProvider: Send + Sync {
     fn name(&self) -> ProviderName;
@@ -54,6 +119,11 @@ pub trait LlmProvider: Send + Sync {
     /// Cheap probe call: a single-token completion against the cheapest model.
     /// `base_url` is honored when present (mainly for `openai_compat`).
     async fn test(&self, base_url: Option<&str>) -> Result<TestOutcome, ProviderTestError>;
+
+    /// Open a streaming completion. The outer `Result` reports preflight
+    /// failures (auth, unknown model, network) before any token streams; the
+    /// returned stream then yields text deltas until the response completes.
+    async fn chat(&self, req: ChatRequest) -> Result<ChatStream, ChatError>;
 }
 
 #[derive(Debug, thiserror::Error)]

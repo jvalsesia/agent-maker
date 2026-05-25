@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
-import { Textarea } from "@/components/ui/textarea";
 import { useConversations, useMessages } from "@/hooks/useConversations";
-import { DraftsProvider, useDrafts } from "@/hooks/useDrafts";
+import { useChat } from "@/hooks/useChat";
+import { DraftsProvider } from "@/hooks/useDrafts";
 import { ConversationSidebar } from "./ConversationSidebar";
 import { MessageList } from "./MessageList";
+import { Composer } from "./Composer";
 
 export function ChatPage() {
   const { id: agentId } = useParams<{ id: string }>();
@@ -44,7 +45,7 @@ function ChatInner({ agentId }: { agentId: string }) {
       />
       <main className="flex min-w-0 flex-1 flex-col">
         <Header agentId={agentId} />
-        <ChatSurface activeId={activeId} loadingList={isLoading} />
+        <ChatSurface agentId={agentId} activeId={activeId} loadingList={isLoading} />
       </main>
     </div>
   );
@@ -63,9 +64,20 @@ function Header({ agentId }: { agentId: string }) {
   );
 }
 
-function ChatSurface({ activeId, loadingList }: { activeId: string | null; loadingList: boolean }) {
+function ChatSurface({
+  agentId,
+  activeId,
+  loadingList,
+}: {
+  agentId: string;
+  activeId: string | null;
+  loadingList: boolean;
+}) {
   const { data, isLoading, error, refetch } = useMessages(activeId ?? undefined);
-  const { getDraft, setDraft } = useDrafts();
+  const { streaming, assistant, pendingUser, send, retry, stop } = useChat(
+    activeId ?? undefined,
+    agentId,
+  );
 
   if (loadingList) {
     return <p className="p-6 text-sm text-muted-foreground">Loading…</p>;
@@ -84,17 +96,17 @@ function ChatSurface({ activeId, loadingList }: { activeId: string | null; loadi
         messages={data?.messages ?? []}
         loading={isLoading}
         error={error}
-        onRetry={() => refetch()}
+        onReload={() => refetch()}
+        draft={assistant}
+        pendingUser={pendingUser}
+        onRetryTurn={retry}
       />
-      <div className="border-t border-border p-3">
-        <Textarea
-          placeholder="Composer arrives with F07 — drafts are preserved across conversation switches."
-          value={getDraft(activeId)}
-          onChange={(e) => setDraft(activeId, e.target.value)}
-          rows={3}
-          className="resize-none"
-        />
-      </div>
+      <Composer
+        conversationId={activeId}
+        streaming={streaming}
+        onSend={send}
+        onStop={stop}
+      />
     </>
   );
 }

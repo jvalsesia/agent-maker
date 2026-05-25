@@ -1,6 +1,11 @@
-use super::provider::{LlmProvider, ProviderName, ProviderTestError, TestOutcome};
+use super::openai::{openai_messages, parse_openai};
+use super::provider::{
+    ChatError, ChatRequest, ChatStream, LlmProvider, ProviderName, ProviderTestError, TestOutcome,
+};
+use super::streaming::sse_data_stream;
 use crate::secrets::{AnyStore, SecretStore};
 use async_trait::async_trait;
+use futures::StreamExt;
 use serde_json::json;
 use std::{sync::Arc, time::Duration, time::Instant};
 
@@ -58,6 +63,46 @@ impl LlmProvider for OpenAiCompat {
             // For local endpoints, model-not-installed is a common failure mode; surface verbatim.
             Err(ProviderTestError::Http { status: status.as_u16(), body })
         }
+    }
+
+    async fn chat(&self, req: ChatRequest) -> Result<ChatStream, ChatError> {
+        // Local endpoints often need no key; fall back to the configured one.
+        let key = match req.api_key {
+            Some(k) => k,
+            None => self.secrets.get("openai_compat").await.unwrap_or_default(),
+        };
+        let base = req.base_url.as_deref().unwrap_or(DEFAULT_BASE);
+        let endpoint = format!("{}/chat/completions", base.trim_end_matches('/'));
+
+        let body = json!({
+            "model": req.model,
+            "max_tokens": req.max_tokens,
+            "stream": true,
+            "stream_options": {"include_usage": true},
+            "messages": openai_messages(req.system, req.messages),
+        });
+
+        let client = reqwest::Client::builder()
+            .build()
+            .map_err(|e| ChatError::Backend(e.to_string()))?;
+
+        let mut request = client.post(&endpoint).json(&body);
+        if !key.is_empty() {
+            request = request.bearer_auth(key);
+        }
+        let resp = request
+            .send()
+            .await
+            .map_err(|e| ChatError::Network(e.to_string()))?;
+
+        let status = resp.status();
+        if !status.is_success() {
+            let body = resp.text().await.unwrap_or_default();
+            return Err(ChatError::Http { status: status.as_u16(), body });
+        }
+
+        let stream = sse_data_stream(resp).map(|res| res.map(|payload| parse_openai(&payload)));
+        Ok(Box::pin(stream))
     }
 }
 
