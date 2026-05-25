@@ -276,6 +276,14 @@ export interface Conversation {
   message_count: number;
 }
 
+export interface RecalledRef {
+  message_id: string;
+  role: "user" | "assistant" | "system";
+  content: string;
+  created_at: string;
+  similarity: number;
+}
+
 export interface Message {
   id: string;
   conversation_id: string;
@@ -284,7 +292,83 @@ export interface Message {
   status: "complete" | "stopped" | "error";
   model: string | null;
   token_count: number | null;
+  finish_reason?: string | null;
   created_at: string;
+  recalled?: RecalledRef[];
+}
+
+// ----- Chat runtime types (F07) -----
+
+export interface ChatRecalledTurn {
+  message_id: string;
+  role: "user" | "assistant" | "system";
+  content: string;
+  created_at: string;
+  similarity: number;
+}
+
+export type ChatStreamEvent =
+  | {
+      type: "meta";
+      user_message_id: string;
+      assistant_message_id: string;
+      model: string;
+      degraded: boolean;
+      degraded_reason?: string | null;
+      recalled: ChatRecalledTurn[];
+    }
+  | { type: "chunk"; content: string }
+  | { type: "done"; status: "complete" | "stopped"; token_count: number; finish_reason?: string | null }
+  | { type: "error"; code: string; message: string; provider?: string };
+
+export interface ChatStartInput {
+  content?: string;
+  retry?: boolean;
+  recent_n?: number;
+  top_k?: number;
+}
+
+/**
+ * Stream a chat turn. POSTs to the SSE endpoint and yields parsed events. Pass
+ * an `AbortSignal` to stop the stream (the backend persists the partial reply
+ * as "stopped"). Pre-stream failures throw `ApiError`.
+ */
+export async function* chatStream(
+  conversationId: string,
+  input: ChatStartInput,
+  signal?: AbortSignal,
+): AsyncGenerator<ChatStreamEvent> {
+  const res = await fetch(`/api/conversations/${conversationId}/chat`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(input),
+    signal,
+  });
+  if (!res.ok || !res.body) {
+    const data = await res.json().catch(() => ({}));
+    throw new ApiError(res.status, data as ApiErrorBody);
+  }
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      let nl: number;
+      while ((nl = buffer.indexOf("\n")) >= 0) {
+        const line = buffer.slice(0, nl).trimEnd();
+        buffer = buffer.slice(nl + 1);
+        if (line.startsWith("data:")) {
+          const payload = line.slice(5).trim();
+          if (payload) yield JSON.parse(payload) as ChatStreamEvent;
+        }
+      }
+    }
+  } finally {
+    reader.cancel().catch(() => {});
+  }
 }
 
 // ----- Skill attachment types (F04) -----
