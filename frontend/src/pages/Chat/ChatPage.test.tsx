@@ -192,7 +192,7 @@ describe("ChatPage", () => {
     // Wait until messages query has settled and composer is rendered
     await waitFor(() => expect(screen.getByText("hello")).toBeInTheDocument());
 
-    const composer = () => screen.getByPlaceholderText(/composer arrives with F07/i) as HTMLTextAreaElement;
+    const composer = () => screen.getByLabelText("Message") as HTMLTextAreaElement;
     fireEvent.change(composer(), { target: { value: "draft for Alpha" } });
 
     // Switch to Beta
