@@ -199,7 +199,71 @@ export const api = {
       "GET",
       `/api/conversations/${id}/messages`,
     ),
+
+  // ----- Memory (F08) -----
+  queryMemory: (conversationId: string, body: MemoryQueryInput) =>
+    request<MemoryBlock>(
+      "POST",
+      `/api/conversations/${conversationId}/memory/query`,
+      body,
+    ),
+  embedPending: (conversationId: string) =>
+    request<EmbedReport>(
+      "POST",
+      `/api/conversations/${conversationId}/memory/embed-pending`,
+      {},
+    ),
+  clearMemory: (conversationId: string) =>
+    request<ClearReport>(
+      "DELETE",
+      `/api/conversations/${conversationId}/memory`,
+    ),
+  memoryStats: (conversationId: string) =>
+    request<{ embedded: number }>(
+      "GET",
+      `/api/conversations/${conversationId}/memory`,
+    ),
 };
+
+// ----- Memory types (F08) -----
+
+export interface MemoryQueryInput {
+  query: string;
+  recent_n?: number;
+  top_k?: number;
+}
+
+export interface MemoryTurn {
+  id: string;
+  role: "user" | "assistant" | "system";
+  content: string;
+  created_at: string;
+}
+
+export interface RetrievedTurn extends MemoryTurn {
+  similarity: number;
+}
+
+export interface MemoryBlock {
+  conversation_id: string;
+  agent_id: string;
+  effective_n: number;
+  effective_k: number;
+  recent: MemoryTurn[];
+  retrieved: RetrievedTurn[];
+  degraded: boolean;
+  degraded_reason?: string | null;
+}
+
+export interface EmbedReport {
+  embedded: number;
+  skipped_already_present: number;
+  failed: number;
+}
+
+export interface ClearReport {
+  removed: number;
+}
 
 // ----- Conversation types (F06) -----
 
