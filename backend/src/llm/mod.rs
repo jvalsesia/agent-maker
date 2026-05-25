@@ -2,8 +2,12 @@ pub mod anthropic;
 pub mod openai;
 pub mod openai_compat;
 pub mod provider;
+pub mod streaming;
 
-pub use provider::{LlmProvider, ProviderName};
+pub use provider::{
+    ChatDelta, ChatError, ChatMessage, ChatRequest, ChatRole, ChatStream, ChatUsage, LlmProvider,
+    ProviderName,
+};
 
 use crate::secrets::AnyStore;
 use std::sync::Arc;
