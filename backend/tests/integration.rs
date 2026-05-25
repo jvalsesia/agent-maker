@@ -2,6 +2,10 @@
 //! (per-test database via `sqlx::test`) and a real `FileStore` (per-test tempdir).
 //! Provider HTTP calls are stubbed with mockito.
 
+// `ENV_LOCK` deliberately serializes env-var mutation across each async test body;
+// the std mutex guard is meant to be held across awaits here.
+#![allow(clippy::await_holding_lock)]
+
 use agent_maker::{
     build_app_with_store,
     secrets::{AnyStore, FileStore},
@@ -25,7 +29,7 @@ fn make_store() -> Arc<AnyStore> {
     // Intentionally leak: lives for the duration of the test process; rust will clean up tempdir
     // when the binary exits.
     let path = dir.keep();
-    Arc::new(AnyStore::File(FileStore::open_or_create(&path).unwrap()))
+    Arc::new(AnyStore::File(Box::new(FileStore::open_or_create(&path).unwrap())))
 }
 
 async fn json_body(resp: axum::response::Response) -> Value {

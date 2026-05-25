@@ -142,7 +142,7 @@ pub enum ProviderTestError {
 pub fn mask_key(key: &str) -> String {
     let chars: Vec<char> = key.chars().collect();
     if chars.len() <= 11 {
-        return "***".repeat(1);
+        return "***".to_string();
     }
     let prefix: String = chars[..7].iter().collect();
     let suffix: String = chars[chars.len() - 4..].iter().collect();

@@ -33,14 +33,13 @@ impl AgentsService {
                 "must be 1–60 characters after trimming",
             ));
         }
-        if let Some(p) = &input.preamble {
-            if p.chars().count() > PREAMBLE_MAX {
+        if let Some(p) = &input.preamble
+            && p.chars().count() > PREAMBLE_MAX {
                 return Err(AppError::validation_field(
                     "preamble",
                     "must be at most 500 characters",
                 ));
             }
-        }
         if input.system_prompt.is_empty() {
             return Err(AppError::validation_field("system_prompt", "is required"));
         }
@@ -59,22 +58,20 @@ impl AgentsService {
         if input.model.trim().is_empty() {
             return Err(AppError::validation_field("model", "is required"));
         }
-        if let Some(n) = input.recent_n_override {
-            if !(4..=30).contains(&n) {
+        if let Some(n) = input.recent_n_override
+            && !(4..=30).contains(&n) {
                 return Err(AppError::validation_field(
                     "recent_n_override",
                     "must be in [4,30]",
                 ));
             }
-        }
-        if let Some(k) = input.top_k_override {
-            if !(0..=10).contains(&k) {
+        if let Some(k) = input.top_k_override
+            && !(0..=10).contains(&k) {
                 return Err(AppError::validation_field(
                     "top_k_override",
                     "must be in [0,10]",
                 ));
             }
-        }
 
         let mut warnings = Vec::new();
         let sp_len = input.system_prompt.chars().count();
@@ -298,14 +295,13 @@ pub fn key_slug(id: Uuid, provider: &str) -> String {
 }
 
 fn map_unique_violation(e: sqlx::Error) -> AppError {
-    if let sqlx::Error::Database(ref db) = e {
-        if db.code().as_deref() == Some("23505") {
+    if let sqlx::Error::Database(ref db) = e
+        && db.code().as_deref() == Some("23505") {
             return AppError::validation_field(
                 "name",
                 "an agent with this name already exists",
             );
         }
-    }
     AppError::Database(e)
 }
 

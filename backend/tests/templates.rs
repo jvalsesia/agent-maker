@@ -17,7 +17,7 @@ use tower::ServiceExt;
 fn make_store() -> Arc<AnyStore> {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.keep();
-    Arc::new(AnyStore::File(FileStore::open_or_create(&path).unwrap()))
+    Arc::new(AnyStore::File(Box::new(FileStore::open_or_create(&path).unwrap())))
 }
 
 async fn json_body(resp: axum::response::Response) -> Value {
@@ -91,7 +91,7 @@ async fn preview_agent_includes_suggested_skill_descriptions(pool: PgPool) {
     let suggested = a["suggested_skills"].as_array().unwrap();
     assert_eq!(suggested.len(), 2);
     assert_eq!(suggested[0]["slug"], "blunt-editor");
-    assert!(suggested[0]["description"].as_str().unwrap().len() > 0);
+    assert!(!suggested[0]["description"].as_str().unwrap().is_empty());
 }
 
 #[sqlx::test(migrations = "./migrations")]
@@ -104,7 +104,7 @@ async fn preview_skill_returns_body(pool: PgPool) {
     assert_eq!(resp.status(), StatusCode::OK);
     let body = json_body(resp).await;
     assert_eq!(body["skill"]["slug"], "concise-replies");
-    assert!(body["skill"]["body"].as_str().unwrap().len() > 0);
+    assert!(!body["skill"]["body"].as_str().unwrap().is_empty());
 }
 
 #[sqlx::test(migrations = "./migrations")]

@@ -35,11 +35,10 @@ impl Config {
 }
 
 fn expand_home(input: &str) -> PathBuf {
-    if let Some(rest) = input.strip_prefix("~/") {
-        if let Some(home) = dirs_home() {
+    if let Some(rest) = input.strip_prefix("~/")
+        && let Some(home) = dirs_home() {
             return home.join(rest);
         }
-    }
     PathBuf::from(input)
 }
 

@@ -2,6 +2,10 @@
 //! Real Postgres via `sqlx::test`, file-backed secret store via tempdir,
 //! OpenAI HTTP surface stubbed with mockito.
 
+// `ENV_LOCK` deliberately serializes env-var mutation across each async test body;
+// the std mutex guard is meant to be held across awaits here.
+#![allow(clippy::await_holding_lock)]
+
 use agent_maker::{
     build_app_with_store,
     secrets::{AnyStore, FileStore},
@@ -22,7 +26,7 @@ static ENV_LOCK: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
 fn make_store() -> Arc<AnyStore> {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.keep();
-    Arc::new(AnyStore::File(FileStore::open_or_create(&path).unwrap()))
+    Arc::new(AnyStore::File(Box::new(FileStore::open_or_create(&path).unwrap())))
 }
 
 async fn json_body(resp: axum::response::Response) -> Value {

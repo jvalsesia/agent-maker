@@ -217,14 +217,13 @@ impl SkillsService {
 }
 
 fn map_unique_violation(e: sqlx::Error) -> AppError {
-    if let sqlx::Error::Database(ref db) = e {
-        if db.code().as_deref() == Some("23505") {
+    if let sqlx::Error::Database(ref db) = e
+        && db.code().as_deref() == Some("23505") {
             return AppError::validation_field(
                 "name",
                 "a skill with this name already exists",
             );
         }
-    }
     AppError::Database(e)
 }
 

@@ -75,30 +75,24 @@ pub struct AgentResponse {
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
+#[derive(Default)]
 pub enum SortField {
+    #[default]
     Name,
     LastUsed,
     Created,
 }
 
-impl Default for SortField {
-    fn default() -> Self {
-        SortField::Name
-    }
-}
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
+#[derive(Default)]
 pub enum SortOrder {
+    #[default]
     Asc,
     Desc,
 }
 
-impl Default for SortOrder {
-    fn default() -> Self {
-        SortOrder::Asc
-    }
-}
 
 #[derive(Debug, Clone, Deserialize, Default)]
 #[serde(deny_unknown_fields)]
