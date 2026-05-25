@@ -148,6 +148,49 @@ async fn update_persists_and_bumps_updated_at(pool: PgPool) {
 }
 
 #[sqlx::test(migrations = "./migrations")]
+async fn response_language_defaults_to_auto_and_round_trips(pool: PgPool) {
+    let app = build_app_with_store(pool, make_store());
+
+    // Omitted → defaults to "auto".
+    let resp = app
+        .clone()
+        .oneshot(req_json("POST", "/api/agents", valid_agent("Default Lang")))
+        .await
+        .unwrap();
+    let body = json_body(resp).await;
+    assert_eq!(body["agent"]["response_language"], "auto");
+
+    // Explicit supported locale persists.
+    let mut withlang = valid_agent("PT Agent");
+    withlang["response_language"] = json!("pt-BR");
+    let resp = app
+        .clone()
+        .oneshot(req_json("POST", "/api/agents", withlang))
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::CREATED);
+    let body = json_body(resp).await;
+    let id = body["agent"]["id"].as_str().unwrap().to_string();
+    assert_eq!(body["agent"]["response_language"], "pt-BR");
+
+    let resp = app.oneshot(req_get(&format!("/api/agents/{id}"))).await.unwrap();
+    let body = json_body(resp).await;
+    assert_eq!(body["agent"]["response_language"], "pt-BR");
+}
+
+#[sqlx::test(migrations = "./migrations")]
+async fn response_language_rejects_invalid(pool: PgPool) {
+    let app = build_app_with_store(pool, make_store());
+    let mut bad = valid_agent("Bad Lang");
+    bad["response_language"] = json!("fr");
+    let resp = app
+        .oneshot(req_json("POST", "/api/agents", bad))
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
+}
+
+#[sqlx::test(migrations = "./migrations")]
 async fn clone_suffixes_copy_and_numbers_collisions(pool: PgPool) {
     let app = build_app_with_store(pool, make_store());
     let resp = app

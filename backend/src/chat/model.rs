@@ -15,6 +15,10 @@ pub struct ChatStartRequest {
     pub recent_n: Option<i16>,
     #[serde(default)]
     pub top_k: Option<i16>,
+    /// Active UI locale (F09). Used to pick the response language when the
+    /// agent's `response_language` is `auto`.
+    #[serde(default)]
+    pub locale: Option<String>,
 }
 
 /// A recalled earlier turn as surfaced in the `meta` SSE frame.
