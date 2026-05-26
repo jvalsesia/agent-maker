@@ -15,14 +15,14 @@ use uuid::Uuid;
 pub fn routes() -> Router<Arc<AppState>> {
     Router::new()
         .route(
-            "/conversations/:id/memory/query",
+            "/conversations/{id}/memory/query",
             post(query),
         )
         .route(
-            "/conversations/:id/memory/embed-pending",
+            "/conversations/{id}/memory/embed-pending",
             post(embed_pending),
         )
-        .route("/conversations/:id/memory", delete(clear).get(stats))
+        .route("/conversations/{id}/memory", delete(clear).get(stats))
 }
 
 async fn stats(

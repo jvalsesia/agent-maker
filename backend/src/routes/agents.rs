@@ -20,12 +20,12 @@ pub fn routes() -> Router<Arc<AppState>> {
     Router::new()
         .route("/agents", get(list).post(create))
         .route(
-            "/agents/:id",
+            "/agents/{id}",
             get(get_one).put(update).delete(delete),
         )
-        .route("/agents/:id/clone", post(clone_agent))
+        .route("/agents/{id}/clone", post(clone_agent))
         .route(
-            "/agents/:id/key",
+            "/agents/{id}/key",
             axum::routing::put(put_key).delete(delete_key),
         )
         .route("/agents/models", get(models))

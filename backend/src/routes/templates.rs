@@ -17,10 +17,10 @@ pub struct ListQuery {
 pub fn routes() -> Router<Arc<AppState>> {
     Router::new()
         .route("/templates", get(list))
-        .route("/templates/agents/:slug", get(get_agent))
-        .route("/templates/skills/:slug", get(get_skill))
-        .route("/templates/agents/:slug/adopt", post(adopt_agent))
-        .route("/templates/skills/:slug/adopt", post(adopt_skill))
+        .route("/templates/agents/{slug}", get(get_agent))
+        .route("/templates/skills/{slug}", get(get_skill))
+        .route("/templates/agents/{slug}/adopt", post(adopt_agent))
+        .route("/templates/skills/{slug}/adopt", post(adopt_skill))
 }
 
 async fn list(

@@ -11,9 +11,9 @@ use uuid::Uuid;
 
 pub fn routes() -> Router<Arc<AppState>> {
     Router::new()
-        .route("/agents/:agent_id/skills", get(list).put(replace))
-        .route("/agents/:agent_id/skills/:skill_id", delete(detach))
-        .route("/agents/:agent_id/compose", get(compose))
+        .route("/agents/{agent_id}/skills", get(list).put(replace))
+        .route("/agents/{agent_id}/skills/{skill_id}", delete(detach))
+        .route("/agents/{agent_id}/compose", get(compose))
 }
 
 async fn list(
