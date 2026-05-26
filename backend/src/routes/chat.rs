@@ -13,7 +13,7 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 pub fn routes() -> Router<Arc<AppState>> {
-    Router::new().route("/conversations/:id/chat", post(chat))
+    Router::new().route("/conversations/{id}/chat", post(chat))
 }
 
 async fn chat(

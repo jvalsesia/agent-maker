@@ -15,14 +15,14 @@ use uuid::Uuid;
 pub fn routes() -> Router<Arc<AppState>> {
     Router::new()
         .route(
-            "/agents/:agent_id/conversations",
+            "/agents/{agent_id}/conversations",
             get(list).post(create),
         )
         .route(
-            "/conversations/:id",
+            "/conversations/{id}",
             get(get_one).patch(rename).delete(delete_one),
         )
-        .route("/conversations/:id/messages", get(list_messages))
+        .route("/conversations/{id}/messages", get(list_messages))
 }
 
 async fn list(

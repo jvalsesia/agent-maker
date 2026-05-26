@@ -17,5 +17,40 @@ services:
       timeout: 2s
       retries: 30
 
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: agent-maker-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://agentmaker:agentmaker@postgres:5432/agentmaker
+      PORT: "8787"
+      AGENT_MAKER_HOME: /data
+      AGENT_MAKER_FORCE_FILE_STORE: "1"
+      RUST_LOG: agent_maker=info,tower_http=info,sqlx=warn
+    ports:
+      - "127.0.0.1:8787:8787"
+    volumes:
+      - agent_maker_data:/data
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: agent-maker-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      PORT: "80"
+      BACKEND_URL: http://backend:8787
+    ports:
+      - "127.0.0.1:8080:80"
+
 volumes:
   agent_maker_pgdata:
+  agent_maker_data:

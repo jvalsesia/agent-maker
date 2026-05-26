@@ -14,9 +14,16 @@ impl Config {
         let database_url = env::var("DATABASE_URL").unwrap_or_else(|_| {
             "postgres://agentmaker:agentmaker@127.0.0.1:5432/agentmaker".to_string()
         });
-        let bind_addr: SocketAddr = env::var("BIND_ADDR")
-            .unwrap_or_else(|_| "127.0.0.1:8787".to_string())
-            .parse()?;
+        // Prefer an explicit BIND_ADDR; otherwise fall back to the PORT variable
+        // injected by platforms like Railway (binding all interfaces), and only
+        // then to the local default.
+        let bind_addr: SocketAddr = match env::var("BIND_ADDR") {
+            Ok(addr) => addr.parse()?,
+            Err(_) => match env::var("PORT") {
+                Ok(port) => format!("0.0.0.0:{port}").parse()?,
+                Err(_) => "127.0.0.1:8787".parse()?,
+            },
+        };
         let agent_maker_home = expand_home(
             &env::var("AGENT_MAKER_HOME").unwrap_or_else(|_| "~/.agent-maker".to_string()),
         );

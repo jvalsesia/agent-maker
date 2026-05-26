@@ -17,8 +17,8 @@ pub fn routes() -> Router<Arc<AppState>> {
     Router::new()
         .route("/health", get(health))
         .route("/settings", get(get_settings).put(put_settings))
-        .route("/settings/providers/:name/key", put(put_key).delete(delete_key))
-        .route("/settings/providers/:name/test", post(test_provider))
+        .route("/settings/providers/{name}/key", put(put_key).delete(delete_key))
+        .route("/settings/providers/{name}/test", post(test_provider))
         .route("/settings/data/wipe", post(wipe))
 }
 
