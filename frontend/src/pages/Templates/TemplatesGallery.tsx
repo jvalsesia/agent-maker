@@ -73,17 +73,17 @@ export function TemplatesGallery() {
     try {
       if (target.kind === "agent") {
         const r = await adoptAgent.mutateAsync(target.slug);
-        toast.success(`Adopted "${r.agent.name}"`, {
+        toast.success(t("templates.adoptedAgent", { name: r.agent.name }), {
           action: {
-            label: "Open agent",
+            label: t("templates.openAgent"),
             onClick: () => navigate(`/agents/${r.agent.id}`),
           },
         });
       } else {
         const r = await adoptSkill.mutateAsync(target.slug);
-        toast.success(`Adopted "${r.skill.name}"`, {
+        toast.success(t("templates.adoptedSkill", { name: r.skill.name }), {
           action: {
-            label: "Open skill",
+            label: t("templates.openSkill"),
             onClick: () => navigate(`/skills/${r.skill.id}`),
           },
         });
@@ -91,7 +91,7 @@ export function TemplatesGallery() {
       setPreview(null);
     } catch (e) {
       const msg =
-        e instanceof ApiError ? e.body.error.message : "Couldn't adopt — please try again";
+        e instanceof ApiError ? e.body.error.message : t("templates.adoptError");
       toast.error(msg);
     }
   };
@@ -112,7 +112,7 @@ export function TemplatesGallery() {
 
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <Input
-            placeholder="Search templates…"
+            placeholder={t("templates.searchPlaceholder")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="max-w-sm"
@@ -129,7 +129,7 @@ export function TemplatesGallery() {
                     : "text-muted-foreground hover:text-foreground",
                 )}
               >
-                {k === "all" ? "All" : `${k}s`}
+                {k === "all" ? t("templates.kindAll") : k === "agent" ? t("templates.kindAgents") : t("templates.kindSkills")}
               </button>
             ))}
           </div>
@@ -137,14 +137,14 @@ export function TemplatesGallery() {
 
         <div className="mt-3 flex flex-wrap gap-1.5 text-xs">
           <CategoryChip
-            label="All"
+            label={t("categories.all")}
             active={category === "all"}
             onClick={() => setCategory("all")}
           />
           {ALL_CATEGORIES.map((c) => (
             <CategoryChip
               key={c}
-              label={c}
+              label={t(`categories.${c}`)}
               active={category === c}
               onClick={() => setCategory(c)}
             />
@@ -153,18 +153,18 @@ export function TemplatesGallery() {
       </div>
 
       {isLoading ? (
-        <p className="mt-6 text-sm text-muted-foreground">Loading…</p>
+        <p className="mt-6 text-sm text-muted-foreground">{t("common.loading")}</p>
       ) : total === 0 ? (
         <div className="mt-10 rounded-md border border-dashed border-border p-10 text-center">
           <BookOpen className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
           <p className="text-sm text-muted-foreground">
-            No templates match these filters.
+            {t("templates.emptyMatch")}
           </p>
           <button
             onClick={clearFilters}
             className="mt-3 text-sm text-foreground underline"
           >
-            Clear filters
+            {t("templates.clearFilters")}
           </button>
         </div>
       ) : (
@@ -248,7 +248,7 @@ function CardShell({
           {kindLabel}
         </span>
         <span className="rounded bg-muted px-1.5 py-0.5 uppercase tracking-wide text-muted-foreground">
-          {category}
+          {t(`categories.${category}`)}
         </span>
         {isFallback && (
           <span
@@ -263,10 +263,10 @@ function CardShell({
       <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{description}</p>
       <div className="mt-3 flex gap-2">
         <Button variant="ghost" size="sm" onClick={onPreview}>
-          Preview
+          {t("templates.preview")}
         </Button>
         <Button size="sm" onClick={onAdopt}>
-          Adopt
+          {t("templates.adopt")}
         </Button>
       </div>
     </div>
@@ -282,9 +282,10 @@ function AgentCard({
   onPreview: () => void;
   onAdopt: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <CardShell
-      kindLabel="Agent"
+      kindLabel={t("templates.agentKind")}
       category={agent.category}
       title={agent.name}
       description={agent.preamble}
@@ -304,9 +305,10 @@ function SkillCard({
   onPreview: () => void;
   onAdopt: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <CardShell
-      kindLabel="Skill"
+      kindLabel={t("templates.skillKind")}
       category={skill.category}
       title={skill.name}
       description={skill.description}

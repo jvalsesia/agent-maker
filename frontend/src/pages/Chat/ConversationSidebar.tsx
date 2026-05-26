@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { Eraser, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -26,6 +27,7 @@ interface Props {
 }
 
 export function ConversationSidebar({ agentId, conversations, activeId, onSelect }: Props) {
+  const { t } = useTranslation();
   const locale = useLocale();
   const create = useCreateConversation(agentId);
   const rename = useRenameConversation(agentId);
@@ -44,12 +46,12 @@ export function ConversationSidebar({ agentId, conversations, activeId, onSelect
     const id = pendingClear.id;
     try {
       const r = await clearMemory.mutateAsync();
-      toast.success(`Cleared ${r.removed} embedded turn${r.removed === 1 ? "" : "s"}`);
+      toast.success(t("chat.memoryCleared", { count: r.removed }));
       qc.invalidateQueries({ queryKey: ["memory-stats", id] });
       setPendingClear(null);
     } catch (e) {
       toast.error(
-        e instanceof ApiError ? e.body.error.message : "Couldn't clear memory",
+        e instanceof ApiError ? e.body.error.message : t("chat.clearError"),
       );
     }
   };
@@ -60,7 +62,7 @@ export function ConversationSidebar({ agentId, conversations, activeId, onSelect
       onSelect(r.conversation.id);
     } catch (e) {
       toast.error(
-        e instanceof ApiError ? e.body.error.message : "Couldn't create conversation",
+        e instanceof ApiError ? e.body.error.message : t("chat.createError"),
       );
     }
   };
@@ -83,7 +85,7 @@ export function ConversationSidebar({ agentId, conversations, activeId, onSelect
       setEditingId(null);
     } catch (e) {
       toast.error(
-        e instanceof ApiError ? e.body.error.message : "Couldn't rename",
+        e instanceof ApiError ? e.body.error.message : t("chat.renameError"),
       );
     }
   };
@@ -99,7 +101,7 @@ export function ConversationSidebar({ agentId, conversations, activeId, onSelect
         if (next) onSelect(next.id);
       }
     } catch (e) {
-      toast.error(e instanceof ApiError ? e.body.error.message : "Couldn't delete");
+      toast.error(e instanceof ApiError ? e.body.error.message : t("chat.deleteError"));
     }
   };
 
@@ -107,7 +109,7 @@ export function ConversationSidebar({ agentId, conversations, activeId, onSelect
     <aside className="flex w-64 shrink-0 flex-col border-r border-border bg-card/40">
       <div className="border-b border-border p-2">
         <Button className="w-full" size="sm" onClick={onCreate} disabled={create.isPending}>
-          <Plus className="mr-1 h-4 w-4" /> New conversation
+          <Plus className="mr-1 h-4 w-4" /> {t("chat.newConversation")}
         </Button>
       </div>
       <div className="flex-1 overflow-y-auto p-1">
@@ -140,7 +142,7 @@ export function ConversationSidebar({ agentId, conversations, activeId, onSelect
                   >
                     <div className="truncate font-medium">{c.title}</div>
                     <div className="truncate text-xs text-muted-foreground">
-                      {c.message_count} msg · {formatRelative(c.last_activity_at, locale)}
+                      {t("chat.msgCount", { count: c.message_count })} · {formatRelative(c.last_activity_at, locale, t)}
                     </div>
                   </button>
                   <div className="flex shrink-0 items-center gap-0.5 opacity-0 group-hover:opacity-100">
@@ -149,7 +151,7 @@ export function ConversationSidebar({ agentId, conversations, activeId, onSelect
                       size="sm"
                       className="h-7 w-7 p-0"
                       onClick={() => startRename(c)}
-                      aria-label="Rename"
+                      aria-label={t("chat.renameAria")}
                     >
                       <Pencil className="h-3.5 w-3.5" />
                     </Button>
@@ -158,7 +160,7 @@ export function ConversationSidebar({ agentId, conversations, activeId, onSelect
                       size="sm"
                       className="h-7 w-7 p-0"
                       onClick={() => setPendingClear(c)}
-                      aria-label="Clear memory"
+                      aria-label={t("chat.clearMemoryAria")}
                     >
                       <Eraser className="h-3.5 w-3.5" />
                     </Button>
@@ -167,7 +169,7 @@ export function ConversationSidebar({ agentId, conversations, activeId, onSelect
                       size="sm"
                       className="h-7 w-7 p-0"
                       onClick={() => setPendingDelete(c)}
-                      aria-label="Delete"
+                      aria-label={t("chat.deleteAria")}
                     >
                       <Trash2 className="h-3.5 w-3.5 text-destructive" />
                     </Button>
@@ -228,16 +230,20 @@ function RenameRow({
   );
 }
 
-function formatRelative(iso: string, locale: Locale): string {
-  const t = new Date(iso).getTime();
-  const diff = Date.now() - t;
+function formatRelative(
+  iso: string,
+  locale: Locale,
+  t: (key: string, opts?: Record<string, unknown>) => string,
+): string {
+  const ts = new Date(iso).getTime();
+  const diff = Date.now() - ts;
   const sec = Math.floor(diff / 1000);
-  if (sec < 60) return "just now";
+  if (sec < 60) return t("chat.justNow");
   const min = Math.floor(sec / 60);
-  if (min < 60) return `${min}m ago`;
+  if (min < 60) return t("chat.minAgo", { n: min });
   const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr}h ago`;
+  if (hr < 24) return t("chat.hourAgo", { n: hr });
   const day = Math.floor(hr / 24);
-  if (day < 7) return `${day}d ago`;
+  if (day < 7) return t("chat.dayAgo", { n: day });
   return formatDate(iso, locale);
 }

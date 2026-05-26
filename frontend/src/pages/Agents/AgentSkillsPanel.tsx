@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ArrowDown, ArrowUp, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { ApiError } from "@/lib/api";
@@ -12,6 +13,7 @@ import { AttachSkillsDialog } from "./AttachSkillsDialog";
 import { ComposedPromptIndicator } from "./ComposedPromptIndicator";
 
 export function AgentSkillsPanel({ agentId }: { agentId: string }) {
+  const { t } = useTranslation();
   const { data, isLoading } = useAttachedSkills(agentId);
   const replace = useReplaceAttachedSkills(agentId);
   const detach = useDetachSkill(agentId);
@@ -52,7 +54,7 @@ export function AgentSkillsPanel({ agentId }: { agentId: string }) {
       if (warn) {
         toast.warning(warn.message);
       } else {
-        toast.success("Skills updated");
+        toast.success(t("agents.skillsPanel.updated"));
       }
     } catch (e) {
       handleApiError(e);
@@ -62,15 +64,15 @@ export function AgentSkillsPanel({ agentId }: { agentId: string }) {
   return (
     <div className="rounded-md border border-border">
       <div className="border-b border-border px-4 py-3 text-sm font-medium">
-        Skills
+        {t("agents.skillsPanel.title")}
       </div>
       <div className="space-y-1 px-2 py-2">
         {isLoading && (
-          <p className="px-2 py-2 text-xs text-muted-foreground">Loading…</p>
+          <p className="px-2 py-2 text-xs text-muted-foreground">{t("common.loading")}</p>
         )}
         {!isLoading && attached.length === 0 && (
           <p className="px-2 py-2 text-xs text-muted-foreground">
-            No skills attached. Click “Attach skills” to add behavior to this agent.
+            {t("agents.skillsPanel.empty")}
           </p>
         )}
         {attached.map((row, idx) => (
@@ -82,7 +84,7 @@ export function AgentSkillsPanel({ agentId }: { agentId: string }) {
               <button
                 type="button"
                 className="rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-30"
-                aria-label={`Move ${row.name} up`}
+                aria-label={t("agents.skillsPanel.moveUp", { name: row.name })}
                 onClick={() => moveTo(idx, idx - 1)}
                 disabled={idx === 0 || replace.isPending}
               >
@@ -91,7 +93,7 @@ export function AgentSkillsPanel({ agentId }: { agentId: string }) {
               <button
                 type="button"
                 className="rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-30"
-                aria-label={`Move ${row.name} down`}
+                aria-label={t("agents.skillsPanel.moveDown", { name: row.name })}
                 onClick={() => moveTo(idx, idx + 1)}
                 disabled={idx === attached.length - 1 || replace.isPending}
               >
@@ -107,7 +109,7 @@ export function AgentSkillsPanel({ agentId }: { agentId: string }) {
             <Button
               size="sm"
               variant="ghost"
-              aria-label={`Detach ${row.name}`}
+              aria-label={t("agents.skillsPanel.detach", { name: row.name })}
               onClick={() => onDetach(row.skill_id)}
               disabled={detach.isPending || replace.isPending}
             >
@@ -123,7 +125,7 @@ export function AgentSkillsPanel({ agentId }: { agentId: string }) {
           onClick={() => setPickerOpen(true)}
           disabled={replace.isPending}
         >
-          <Plus className="mr-1 h-4 w-4" /> Attach skills
+          <Plus className="mr-1 h-4 w-4" /> {t("agents.skillsPanel.attach")}
         </Button>
         <ComposedPromptIndicator agentId={agentId} />
       </div>

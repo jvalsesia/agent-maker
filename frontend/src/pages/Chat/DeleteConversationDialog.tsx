@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import {
   Dialog,
   DialogContent,
@@ -16,31 +17,31 @@ interface Props {
 }
 
 export function DeleteConversationDialog({ open, conversation, onClose, onConfirm, pending }: Props) {
+  const { t } = useTranslation();
   return (
     <Dialog open={open} onOpenChange={(o) => (!o ? onClose() : undefined)}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Delete conversation?</DialogTitle>
+          <DialogTitle>{t("chat.deleteConversation.title")}</DialogTitle>
         </DialogHeader>
         <p className="text-sm text-muted-foreground">
           {conversation ? (
             <>
               <span className="font-medium text-foreground">{conversation.title}</span>{" "}
-              will be removed along with{" "}
+              {t("chat.deleteConversation.willBeRemoved")}{" "}
               <span className="font-medium text-foreground">
-                {conversation.message_count} message
-                {conversation.message_count === 1 ? "" : "s"}
+                {t("chat.deleteConversation.messages", { count: conversation.message_count })}
               </span>
-              . This cannot be undone.
+              {t("chat.deleteConversation.cannotUndo")}
             </>
           ) : null}
         </p>
         <DialogFooter className="mt-4 gap-2">
           <Button variant="ghost" onClick={onClose} disabled={pending}>
-            Cancel
+            {t("common.cancel")}
           </Button>
           <Button variant="destructive" onClick={onConfirm} disabled={pending}>
-            {pending ? "Deleting…" : "Delete"}
+            {pending ? t("common.deleting") : t("common.delete")}
           </Button>
         </DialogFooter>
       </DialogContent>

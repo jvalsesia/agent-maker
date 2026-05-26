@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { Eye, EyeOff } from "lucide-react";
 import { ApiError, api, type ProviderEntry, type ProviderName } from "@/lib/api";
@@ -16,8 +17,9 @@ const LABELS: Record<ProviderName, string> = {
 };
 
 export function ProvidersSection() {
+  const { t } = useTranslation();
   const { data } = useSettings();
-  if (!data) return <p className="text-sm text-muted-foreground">Loading…</p>;
+  if (!data) return <p className="text-sm text-muted-foreground">{t("common.loading")}</p>;
   return (
     <div className="space-y-4">
       {data.providers.map((p) => (
@@ -25,7 +27,7 @@ export function ProvidersSection() {
       ))}
       {data.key_store_backend === "file" && (
         <p className="text-xs text-muted-foreground border border-border rounded-md p-3">
-          Using encrypted file fallback — OS keychain unavailable.
+          {t("settings.providers.fileFallback")}
         </p>
       )}
     </div>
@@ -33,6 +35,7 @@ export function ProvidersSection() {
 }
 
 function ProviderCard({ entry }: { entry: ProviderEntry }) {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const [key, setKey] = useState("");
   const [baseUrl, setBaseUrl] = useState(entry.base_url ?? "");
@@ -43,7 +46,7 @@ function ProviderCard({ entry }: { entry: ProviderEntry }) {
   const save = async () => {
     try {
       await api.putKey(entry.name, key || "", baseUrl || null);
-      toast.success(`${LABELS[entry.name]} saved`);
+      toast.success(t("settings.providers.saved", { name: LABELS[entry.name] }));
       setKey("");
       await qc.invalidateQueries({ queryKey: settingsKey });
     } catch (e) {
@@ -54,7 +57,7 @@ function ProviderCard({ entry }: { entry: ProviderEntry }) {
   const remove = async () => {
     try {
       await api.deleteKey(entry.name);
-      toast.success(`${LABELS[entry.name]} removed`);
+      toast.success(t("settings.providers.removed", { name: LABELS[entry.name] }));
       await qc.invalidateQueries({ queryKey: settingsKey });
     } catch (e) {
       toast.error(e instanceof ApiError ? e.body.error.message : String(e));
@@ -66,7 +69,7 @@ function ProviderCard({ entry }: { entry: ProviderEntry }) {
     setTestMsg(null);
     try {
       const r = await api.testProvider(entry.name);
-      setTestMsg(`OK — ${r.model_used} (${r.latency_ms} ms)`);
+      setTestMsg(t("settings.providers.testOk", { model: r.model_used, latency: r.latency_ms }));
     } catch (e) {
       setTestMsg(e instanceof ApiError ? e.body.error.message : String(e));
     } finally {
@@ -80,7 +83,9 @@ function ProviderCard({ entry }: { entry: ProviderEntry }) {
         <CardTitle className="flex items-center justify-between">
           <span>{LABELS[entry.name]}</span>
           <span className="text-xs font-normal text-muted-foreground">
-            {entry.key_configured ? "configured" : "not configured"}
+            {entry.key_configured
+              ? t("settings.providers.configured")
+              : t("settings.providers.notConfigured")}
           </span>
         </CardTitle>
         {entry.key_configured && entry.key_masked && (
@@ -90,7 +95,7 @@ function ProviderCard({ entry }: { entry: ProviderEntry }) {
               type="button"
               onClick={() => setReveal((r) => !r)}
               className="ml-2 align-middle text-muted-foreground hover:text-foreground"
-              aria-label={reveal ? "hide key" : "show key"}
+              aria-label={reveal ? t("settings.providers.hideKey") : t("settings.providers.showKey")}
             >
               {reveal ? <EyeOff className="inline h-3 w-3" /> : <Eye className="inline h-3 w-3" />}
             </button>
@@ -99,19 +104,23 @@ function ProviderCard({ entry }: { entry: ProviderEntry }) {
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="space-y-1">
-          <Label htmlFor={`key-${entry.name}`}>API key</Label>
+          <Label htmlFor={`key-${entry.name}`}>{t("common.apiKey")}</Label>
           <Input
             id={`key-${entry.name}`}
             type="password"
             autoComplete="off"
-            placeholder={entry.key_configured ? "Replace key (leave empty to keep)" : "Paste key here"}
+            placeholder={
+              entry.key_configured
+                ? t("settings.providers.replacePlaceholder")
+                : t("settings.providers.pastePlaceholder")
+            }
             value={key}
             onChange={(e) => setKey(e.target.value)}
           />
         </div>
         {entry.name === "openai_compat" && (
           <div className="space-y-1">
-            <Label htmlFor="base">Base URL</Label>
+            <Label htmlFor="base">{t("settings.providers.baseUrl")}</Label>
             <Input
               id="base"
               placeholder="http://localhost:11434/v1"
@@ -122,14 +131,14 @@ function ProviderCard({ entry }: { entry: ProviderEntry }) {
         )}
         <div className="flex flex-wrap gap-2">
           <Button onClick={save} disabled={!key && entry.name !== "openai_compat"}>
-            Save
+            {t("settings.providers.save")}
           </Button>
           <Button variant="outline" onClick={test} disabled={!entry.key_configured && entry.name !== "openai_compat"}>
-            {testing ? "Testing…" : "Test connection"}
+            {testing ? t("settings.providers.testing") : t("settings.providers.testConnection")}
           </Button>
           {entry.key_configured && (
             <Button variant="destructive" onClick={remove}>
-              Remove key
+              {t("settings.providers.removeKey")}
             </Button>
           )}
         </div>

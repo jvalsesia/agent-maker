@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/cn";
 import type { Message } from "@/lib/api";
 import { Markdown } from "./Markdown";
@@ -12,6 +13,7 @@ interface Props {
 /** A persisted chat message: markdown for assistant turns, plain text for the
  *  user, plus a model/token chip, status indicators, retry, and recalled turns. */
 export function MessageBubble({ message, onRetry }: Props) {
+  const { t } = useTranslation();
   const isUser = message.role === "user";
   const errored = message.status === "error";
 
@@ -32,7 +34,7 @@ export function MessageBubble({ message, onRetry }: Props) {
         {isUser ? (
           <p className="whitespace-pre-wrap">{message.content}</p>
         ) : errored && !message.content ? (
-          <p className="text-destructive">The provider call failed.</p>
+          <p className="text-destructive">{t("chat.bubble.providerFailed")}</p>
         ) : (
           <Markdown>{message.content}</Markdown>
         )}
@@ -40,7 +42,7 @@ export function MessageBubble({ message, onRetry }: Props) {
         {!isUser && (message.model || message.token_count != null) && (
           <div className="mt-2 text-[11px] text-muted-foreground">
             {message.model}
-            {message.token_count != null && ` · ~${message.token_count} tokens`}
+            {message.token_count != null && ` · ${t("chat.bubble.tokens", { count: message.token_count })}`}
           </div>
         )}
 
@@ -50,7 +52,7 @@ export function MessageBubble({ message, onRetry }: Props) {
 
         {!isUser && (errored || message.status === "stopped") && onRetry && (
           <button onClick={onRetry} className="mt-2 text-xs text-foreground underline">
-            Retry
+            {t("common.retry")}
           </button>
         )}
       </div>

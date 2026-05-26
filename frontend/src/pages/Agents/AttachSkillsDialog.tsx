@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Dialog,
   DialogContent,
@@ -26,6 +27,7 @@ export function AttachSkillsDialog({
   onClose,
   onConfirm,
 }: Props) {
+  const { t } = useTranslation();
   const { data, isLoading } = useSkills();
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set(alreadyAttachedIds));
@@ -70,25 +72,23 @@ export function AttachSkillsDialog({
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Attach skills</DialogTitle>
-          <DialogDescription>
-            Select skills to attach to this agent. Skills already attached are pre-checked.
-          </DialogDescription>
+          <DialogTitle>{t("agents.attachDialog.title")}</DialogTitle>
+          <DialogDescription>{t("agents.attachDialog.description")}</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-3">
           <Input
-            placeholder="Search by name or description"
+            placeholder={t("agents.attachDialog.searchPlaceholder")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
           <div className="max-h-72 overflow-y-auto rounded-md border border-border">
             {isLoading && (
-              <p className="px-3 py-4 text-sm text-muted-foreground">Loading…</p>
+              <p className="px-3 py-4 text-sm text-muted-foreground">{t("common.loading")}</p>
             )}
             {!isLoading && filtered.length === 0 && (
               <p className="px-3 py-4 text-sm text-muted-foreground">
-                No skills match.
+                {t("agents.attachDialog.noMatch")}
               </p>
             )}
             {filtered.map((s) => {
@@ -120,10 +120,10 @@ export function AttachSkillsDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={pending}>
-            Cancel
+            {t("common.cancel")}
           </Button>
           <Button onClick={onSubmit} disabled={pending}>
-            {pending ? "Saving…" : "Attach selected"}
+            {pending ? t("common.saving") : t("agents.attachDialog.attachSelected")}
           </Button>
         </DialogFooter>
       </DialogContent>

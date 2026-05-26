@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { AlertTriangle, Copy, Trash2 } from "lucide-react";
 import { ApiError, type SkillUpsert, type SkillWarning } from "@/lib/api";
@@ -21,6 +22,7 @@ interface FieldErrors {
 }
 
 export function SkillForm() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const editing = !!id;
   const navigate = useNavigate();
@@ -69,7 +71,7 @@ export function SkillForm() {
         ? await update.mutateAsync(buildBody())
         : await create.mutateAsync(buildBody());
       setWarnings(resp.warnings);
-      toast.success("Skill saved");
+      toast.success(t("skills.form.saved"));
       if (!editing) {
         navigate(`/skills/${resp.skill.id}`, { replace: true });
       }
@@ -82,7 +84,7 @@ export function SkillForm() {
     if (!id) return;
     try {
       const r = await clone.mutateAsync({ id });
-      toast.success(`Cloned as ${r.skill.name}`);
+      toast.success(t("skills.form.cloned", { name: r.skill.name }));
       navigate(`/skills/${r.skill.id}`);
     } catch (e) {
       handleApiError(e);
@@ -93,7 +95,7 @@ export function SkillForm() {
     if (!id) return;
     try {
       await del.mutateAsync(id);
-      toast.success("Deleted");
+      toast.success(t("skills.form.deleted"));
       navigate("/skills");
     } catch (e) {
       handleApiError(e);
@@ -110,11 +112,11 @@ export function SkillForm() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">
-            {editing ? skill?.name ?? "Skill" : "New skill"}
+            {editing ? skill?.name ?? t("skills.form.fallbackTitle") : t("skills.form.newTitle")}
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
             <Link to="/skills" className="underline">
-              All skills
+              {t("skills.form.allSkills")}
             </Link>
           </p>
         </div>
@@ -122,37 +124,37 @@ export function SkillForm() {
 
       <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-2 space-y-5">
-          <Field label="Name" hint={`${name.length} / 60`} error={fieldErrors.name}>
+          <Field label={t("skills.form.name")} hint={`${name.length} / 60`} error={fieldErrors.name}>
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Concise Replies"
+              placeholder={t("skills.form.namePlaceholder")}
               maxLength={60}
             />
           </Field>
 
           <Field
-            label="Description"
+            label={t("skills.form.description")}
             hint={`${description.length} / 200`}
             error={fieldErrors.description}
           >
             <Input
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="One-line summary shown in pickers"
+              placeholder={t("skills.form.descriptionPlaceholder")}
               maxLength={200}
             />
           </Field>
 
           <Field
-            label="Instruction body"
-            hint={`${body.length} chars`}
+            label={t("skills.form.body")}
+            hint={t("skills.form.bodyChars", { count: body.length })}
             error={fieldErrors.body}
           >
             <Textarea
               value={body}
               onChange={(e) => setBody(e.target.value)}
-              placeholder="Prefer short sentences. Avoid filler…"
+              placeholder={t("skills.form.bodyPlaceholder")}
               rows={14}
               className="font-mono text-xs"
             />
@@ -167,11 +169,11 @@ export function SkillForm() {
         {editing && (
           <aside className="rounded-md border border-border bg-card/60 p-4 h-fit">
             <Label className="text-xs uppercase tracking-wide text-muted-foreground">
-              Used by {usingAgents.length} agent{usingAgents.length === 1 ? "" : "s"}
+              {t("skills.form.usedBy", { count: usingAgents.length })}
             </Label>
             {usingAgents.length === 0 ? (
               <p className="mt-2 text-sm text-muted-foreground">
-                Attach this skill to an agent from the agent's detail page.
+                {t("skills.form.noAgentsHint")}
               </p>
             ) : (
               <ul className="mt-2 space-y-1 text-sm">
@@ -195,19 +197,19 @@ export function SkillForm() {
           className={editing ? "text-destructive" : "invisible"}
           disabled={!editing}
         >
-          <Trash2 className="mr-1 h-4 w-4" /> Delete
+          <Trash2 className="mr-1 h-4 w-4" /> {t("common.delete")}
         </Button>
         <div className="flex items-center gap-2">
           {editing && (
             <Button variant="outline" onClick={onClone}>
-              <Copy className="mr-1 h-4 w-4" /> Clone
+              <Copy className="mr-1 h-4 w-4" /> {t("common.clone")}
             </Button>
           )}
           <Button variant="outline" onClick={() => navigate("/skills")}>
-            Cancel
+            {t("common.cancel")}
           </Button>
           <Button onClick={save} disabled={saving}>
-            {saving ? "Saving…" : "Save"}
+            {saving ? t("common.saving") : t("common.save")}
           </Button>
         </div>
       </div>

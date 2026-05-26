@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { api, type ProviderName, ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ const PROVIDERS: { name: ProviderName; label: string; link: string }[] = [
 ];
 
 export function OnboardingPage() {
+  const { t } = useTranslation();
   const [provider, setProvider] = useState<ProviderName>("anthropic");
   const [key, setKey] = useState("");
   const [busy, setBusy] = useState(false);
@@ -26,7 +28,7 @@ export function OnboardingPage() {
     setBusy(true);
     try {
       await api.putKey(provider, key);
-      toast.success("Provider configured");
+      toast.success(t("onboarding.configured"));
       await qc.invalidateQueries({ queryKey: settingsKey });
       nav("/settings");
     } catch (e) {
@@ -41,10 +43,8 @@ export function OnboardingPage() {
     <div className="mx-auto mt-24 max-w-xl">
       <Card>
         <CardHeader>
-          <CardTitle>Welcome to agent-maker</CardTitle>
-          <CardDescription>
-            Add at least one provider API key to start building agents.
-          </CardDescription>
+          <CardTitle>{t("onboarding.title")}</CardTitle>
+          <CardDescription>{t("onboarding.description")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex gap-2">
@@ -60,24 +60,24 @@ export function OnboardingPage() {
             ))}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="key">API key</Label>
+            <Label htmlFor="key">{t("common.apiKey")}</Label>
             <Input
               id="key"
               type="password"
               autoComplete="off"
-              placeholder={provider === "openai_compat" ? "Optional for local endpoints" : "sk-..."}
+              placeholder={provider === "openai_compat" ? t("onboarding.optionalLocal") : "sk-..."}
               value={key}
               onChange={(e) => setKey(e.target.value)}
             />
             <p className="text-xs text-muted-foreground">
-              Get a key at{" "}
+              {t("onboarding.getKeyAt")}{" "}
               <a className="underline" href={PROVIDERS.find((p) => p.name === provider)!.link} target="_blank" rel="noreferrer">
                 {PROVIDERS.find((p) => p.name === provider)!.link}
               </a>
             </p>
           </div>
           <Button disabled={busy || (!key && provider !== "openai_compat")} onClick={onSave}>
-            {busy ? "Saving…" : "Save and continue"}
+            {busy ? t("common.saving") : t("onboarding.saveContinue")}
           </Button>
         </CardContent>
       </Card>

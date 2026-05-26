@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { MessageSquare } from "lucide-react";
 import type { Message } from "@/lib/api";
 import type { DraftAssistant } from "@/hooks/useChat";
@@ -26,15 +27,16 @@ export function MessageList({
   pendingUser,
   onRetryTurn,
 }: Props) {
+  const { t } = useTranslation();
   if (loading) {
-    return <p className="p-6 text-sm text-muted-foreground">Loading messages…</p>;
+    return <p className="p-6 text-sm text-muted-foreground">{t("chat.loadingMessages")}</p>;
   }
   if (error) {
     return (
       <div className="p-6 text-sm">
-        <p className="text-destructive">Couldn't load messages.</p>
+        <p className="text-destructive">{t("chat.loadError")}</p>
         <button onClick={onReload} className="mt-2 text-foreground underline">
-          Retry
+          {t("common.retry")}
         </button>
       </div>
     );
@@ -45,8 +47,8 @@ export function MessageList({
     return (
       <div className="flex flex-1 flex-col items-center justify-center p-10 text-center text-sm text-muted-foreground">
         <MessageSquare className="mb-3 h-8 w-8" />
-        <p>No messages yet.</p>
-        <p className="mt-1 max-w-sm">Send a message to start the conversation.</p>
+        <p>{t("chat.emptyTitle")}</p>
+        <p className="mt-1 max-w-sm">{t("chat.emptyHint")}</p>
       </div>
     );
   }
@@ -73,7 +75,7 @@ export function MessageList({
               assistant
             </div>
             {draft.degraded && (
-              <p className="mb-1 text-xs text-muted-foreground">memory unavailable for this turn</p>
+              <p className="mb-1 text-xs text-muted-foreground">{t("chat.memoryUnavailable")}</p>
             )}
             {draft.content ? <Markdown>{draft.content}</Markdown> : <span className="text-muted-foreground">▍</span>}
             {draft.content && <span className="animate-pulse">▍</span>}

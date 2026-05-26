@@ -6,9 +6,12 @@
     "saving": "Saving…",
     "cancel": "Cancel",
     "delete": "Delete",
+    "deleting": "Deleting…",
     "clone": "Clone",
     "retry": "Retry",
-    "comingSoon": "Coming soon"
+    "close": "Close",
+    "comingSoon": "Coming soon",
+    "apiKey": "API key"
   },
   "nav": {
     "agents": "Agents",
@@ -21,7 +24,24 @@
     "dbUnavailableTitle": "Database unavailable",
     "dbUnavailableBody": "The backend cannot reach Postgres. Start it with:"
   },
+  "categories": {
+    "all": "All",
+    "writing": "writing",
+    "research": "research",
+    "productivity": "productivity",
+    "coding": "coding",
+    "learning": "learning",
+    "wellbeing": "wellbeing"
+  },
   "settings": {
+    "title": "Settings",
+    "subtitle": "Configure providers, memory defaults, appearance, and local data.",
+    "tabs": {
+      "providers": "Providers",
+      "memory": "Memory",
+      "appearance": "Appearance",
+      "data": "Data"
+    },
     "appearance": {
       "title": "Appearance",
       "description": "Light, dark, or follow the system setting.",
@@ -29,20 +49,258 @@
       "language": "Language",
       "languageDescription": "Choose the language for the interface.",
       "languageChanged": "Language: {{language}}"
+    },
+    "memory": {
+      "title": "Memory defaults",
+      "description": "Recent N: verbatim turns included in every request. Top K: older turns retrieved via semantic search.",
+      "recentN": "Recent N (4–30)",
+      "topK": "Top K (0–10)",
+      "saved": "Memory defaults saved"
+    },
+    "data": {
+      "title": "Data",
+      "description": "Permanently delete all agents, skills, conversations, embeddings, and stored API keys.",
+      "wipeButton": "Wipe local data",
+      "dialogTitle": "Wipe local data?",
+      "dialogBody": "This cannot be undone. Type <code>WIPE</code> to confirm.",
+      "confirmLabel": "Confirmation",
+      "wipeConfirm": "Wipe",
+      "wiped": "Local data wiped"
+    },
+    "providers": {
+      "fileFallback": "Using encrypted file fallback — OS keychain unavailable.",
+      "configured": "configured",
+      "notConfigured": "not configured",
+      "replacePlaceholder": "Replace key (leave empty to keep)",
+      "pastePlaceholder": "Paste key here",
+      "baseUrl": "Base URL",
+      "save": "Save",
+      "testing": "Testing…",
+      "testConnection": "Test connection",
+      "removeKey": "Remove key",
+      "showKey": "show key",
+      "hideKey": "hide key",
+      "saved": "{{name}} saved",
+      "removed": "{{name}} removed",
+      "testOk": "OK — {{model}} ({{latency}} ms)"
     }
   },
+  "onboarding": {
+    "title": "Welcome to agent-maker",
+    "description": "Add at least one provider API key to start building agents.",
+    "optionalLocal": "Optional for local endpoints",
+    "getKeyAt": "Get a key at",
+    "saveContinue": "Save and continue",
+    "configured": "Provider configured"
+  },
   "agents": {
+    "list": {
+      "title": "Agents",
+      "subtitle": "Personas you can chat with. Each agent has its own system prompt, provider, and model.",
+      "newButton": "New Agent",
+      "searchPlaceholder": "Search by name or preamble…",
+      "sortName": "Name",
+      "sortLastUsed": "Last used",
+      "sortCreated": "Created",
+      "empty": "No agents yet — create your first one.",
+      "createButton": "Create agent",
+      "openChat": "Open chat",
+      "cloned": "Cloned as {{name}}",
+      "deleted": "Deleted {{name}}"
+    },
     "form": {
+      "newTitle": "New agent",
+      "fallbackTitle": "Agent",
+      "allAgents": "All agents",
+      "openChat": "Open chat",
+      "name": "Name",
+      "namePlaceholder": "e.g. Writing Editor",
+      "preamble": "Preamble",
+      "preamblePlaceholder": "Short blurb shown in lists",
+      "systemPrompt": "System prompt",
+      "systemPromptPlaceholder": "You are a…",
+      "systemPromptChars": "{{count}} chars",
+      "provider": "Provider",
+      "model": "Model",
+      "chooseModel": "Choose a model",
+      "noKeyWarning": "No key configured for {{provider}}.",
+      "goToSettings": "Go to Settings",
+      "recentNOverride": "Recent-N override",
+      "topKOverride": "Top-K override",
+      "globalHint": "global: {{value}}",
+      "optional": "optional",
+      "advanced": "Advanced — per-agent API key",
+      "overrideKeySet": "An override key is currently set for this agent.",
+      "replaceKeyPlaceholder": "Replace key (leave empty to keep)",
+      "pasteKeyPlaceholder": "Paste key here",
+      "saveKey": "Save key",
+      "removeOverride": "Remove override",
+      "saveAndChat": "Save and chat",
       "responseLanguage": "Response language",
       "responseLanguageHint": "Language the agent replies in.",
       "responseLanguageAuto": "Automatic (follow my language)",
-      "saved": "Agent saved"
+      "saved": "Agent saved",
+      "cloned": "Cloned as {{name}}",
+      "deleted": "Deleted",
+      "keySaved": "Per-agent key saved ({{masked}})",
+      "keyRemoved": "Per-agent key removed"
+    },
+    "skillsPanel": {
+      "title": "Skills",
+      "empty": "No skills attached. Click “Attach skills” to add behavior to this agent.",
+      "attach": "Attach skills",
+      "moveUp": "Move {{name}} up",
+      "moveDown": "Move {{name}} down",
+      "detach": "Detach {{name}}",
+      "updated": "Skills updated"
+    },
+    "attachDialog": {
+      "title": "Attach skills",
+      "description": "Select skills to attach to this agent. Skills already attached are pre-checked.",
+      "searchPlaceholder": "Search by name or description",
+      "noMatch": "No skills match.",
+      "attachSelected": "Attach selected"
+    },
+    "deleteDialog": {
+      "title": "Delete agent",
+      "body": "This will permanently remove the agent {{name}} from your workspace.",
+      "conversations_one": "{{count}} conversation will be deleted",
+      "conversations_other": "{{count}} conversation(s) will be deleted",
+      "skills_one": "{{count}} attached skill will be detached",
+      "skills_other": "{{count}} attached skill(s) will be detached"
+    },
+    "composed": {
+      "calculating": "Composed prompt: calculating…",
+      "unavailable": "Composed prompt: —",
+      "summary": "Composed prompt: {{used}} / {{total}} chars ({{pct}}%)",
+      "nearLimit": "near model context limit — chat may fail",
+      "consider": "consider shortening or detaching skills"
+    }
+  },
+  "skills": {
+    "list": {
+      "title": "Skills",
+      "subtitle": "Reusable instruction bundles. Attach them to any agent to extend behavior.",
+      "newButton": "New Skill",
+      "searchPlaceholder": "Search by name or description…",
+      "sortName": "Name",
+      "sortAttached": "Attached agents",
+      "sortCreated": "Created",
+      "empty": "No skills yet — create your first one.",
+      "createButton": "Create skill",
+      "agentCount_one": "{{count}} agent",
+      "agentCount_other": "{{count}} agents",
+      "cloned": "Cloned as {{name}}",
+      "deleted": "Deleted {{name}}"
+    },
+    "form": {
+      "newTitle": "New skill",
+      "fallbackTitle": "Skill",
+      "allSkills": "All skills",
+      "name": "Name",
+      "namePlaceholder": "e.g. Concise Replies",
+      "description": "Description",
+      "descriptionPlaceholder": "One-line summary shown in pickers",
+      "body": "Instruction body",
+      "bodyPlaceholder": "Prefer short sentences. Avoid filler…",
+      "bodyChars": "{{count}} chars",
+      "usedBy_one": "Used by {{count}} agent",
+      "usedBy_other": "Used by {{count}} agents",
+      "noAgentsHint": "Attach this skill to an agent from the agent's detail page.",
+      "saved": "Skill saved",
+      "cloned": "Cloned as {{name}}",
+      "deleted": "Deleted"
+    },
+    "deleteDialog": {
+      "title": "Delete skill",
+      "body": "This will permanently remove the skill {{name}} from your workspace.",
+      "usingAgents_one": "The following {{count}} agent currently uses this skill:",
+      "usingAgents_other": "The following {{count}} agent(s) currently use this skill:",
+      "willDetach": "They will be detached automatically.",
+      "noAgents": "No agents currently use this skill."
+    }
+  },
+  "chat": {
+    "editAgent": "Edit agent",
+    "selectConversation": "Select or create a conversation to begin.",
+    "loadingMessages": "Loading messages…",
+    "loadError": "Couldn't load messages.",
+    "emptyTitle": "No messages yet.",
+    "emptyHint": "Send a message to start the conversation.",
+    "newConversation": "New conversation",
+    "renameAria": "Rename",
+    "clearMemoryAria": "Clear memory",
+    "deleteAria": "Delete",
+    "justNow": "just now",
+    "minAgo": "{{n}}m ago",
+    "hourAgo": "{{n}}h ago",
+    "dayAgo": "{{n}}d ago",
+    "msgCount": "{{count}} msg",
+    "memoryCleared_one": "Cleared {{count}} embedded turn",
+    "memoryCleared_other": "Cleared {{count}} embedded turns",
+    "createError": "Couldn't create conversation",
+    "renameError": "Couldn't rename",
+    "deleteError": "Couldn't delete",
+    "clearError": "Couldn't clear memory",
+    "composer": {
+      "generating": "Generating a response… new messages are blocked until it finishes.",
+      "placeholder": "Send a message…  (Enter to send, Shift+Enter for newline)",
+      "ariaMessage": "Message",
+      "ariaSend": "Send",
+      "ariaStop": "Stop"
+    },
+    "bubble": {
+      "providerFailed": "The provider call failed.",
+      "tokens": "~{{count}} tokens"
+    },
+    "recalled_one": "Recalled {{count}} earlier turn",
+    "recalled_other": "Recalled {{count}} earlier turns",
+    "match": "match",
+    "memoryUnavailable": "memory unavailable for this turn",
+    "deleteConversation": {
+      "title": "Delete conversation?",
+      "willBeRemoved": "will be removed along with",
+      "messages_one": "{{count}} message",
+      "messages_other": "{{count}} messages",
+      "cannotUndo": ". This cannot be undone."
+    },
+    "clearMemory": {
+      "title": "Clear long-term memory",
+      "description": "Remove embeddings for <strong>{{title}}</strong>. The messages themselves stay; only the semantic recall index is wiped.",
+      "embeddedTurns": "Embedded turns:",
+      "clearButton": "Clear memory",
+      "clearing": "Clearing…"
     }
   },
   "templates": {
     "title": "Templates",
     "subtitle": "Starter agents and skills. Adopt to create editable copies.",
     "fallbackBadge": "English",
-    "fallbackTooltip": "No translation yet — shown in English."
+    "fallbackTooltip": "No translation yet — shown in English.",
+    "searchPlaceholder": "Search templates…",
+    "kindAll": "All",
+    "kindAgents": "agents",
+    "kindSkills": "skills",
+    "emptyMatch": "No templates match these filters.",
+    "clearFilters": "Clear filters",
+    "preview": "Preview",
+    "adopt": "Adopt",
+    "agentKind": "Agent",
+    "skillKind": "Skill",
+    "adoptedAgent": "Adopted \"{{name}}\"",
+    "adoptedSkill": "Adopted \"{{name}}\"",
+    "openAgent": "Open agent",
+    "openSkill": "Open skill",
+    "adoptError": "Couldn't adopt — please try again",
+    "drawer": {
+      "adopting": "Adopting…",
+      "systemPrompt": "System prompt",
+      "defaultsTo": "Defaults to",
+      "suggestedSkills": "Suggested skills",
+      "body": "Body",
+      "copy": "Copy",
+      "copied": "Copied",
+      "copyFailed": "Copy failed"
+    }
   }
 }

@@ -1,26 +1,27 @@
+import { useTranslation } from "react-i18next";
 import { AlertTriangle } from "lucide-react";
 import { useComposePreview } from "@/hooks/useAgentSkills";
 import { useLocale } from "@/hooks/useLocale";
 import { formatNumber } from "@/lib/format";
 
 export function ComposedPromptIndicator({ agentId }: { agentId: string }) {
+  const { t } = useTranslation();
   const locale = useLocale();
   const { data, isLoading, isError } = useComposePreview(agentId);
 
   if (isLoading) {
-    return (
-      <p className="text-xs text-muted-foreground">Composed prompt: calculating…</p>
-    );
+    return <p className="text-xs text-muted-foreground">{t("agents.composed.calculating")}</p>;
   }
   if (isError || !data) {
-    return <p className="text-xs text-muted-foreground">Composed prompt: —</p>;
+    return <p className="text-xs text-muted-foreground">{t("agents.composed.unavailable")}</p>;
   }
 
   const pct = Math.round(data.fraction * 100);
-  const summary = `Composed prompt: ${formatNumber(data.length_chars, locale)} / ${formatNumber(
-    data.model_context_chars,
-    locale,
-  )} chars (${pct}%)`;
+  const summary = t("agents.composed.summary", {
+    used: formatNumber(data.length_chars, locale),
+    total: formatNumber(data.model_context_chars, locale),
+    pct,
+  });
 
   if (data.fraction >= 0.95) {
     return (
@@ -28,7 +29,7 @@ export function ComposedPromptIndicator({ agentId }: { agentId: string }) {
         <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
         <div>
           <div className="font-medium">{summary}</div>
-          <div>near model context limit — chat may fail</div>
+          <div>{t("agents.composed.nearLimit")}</div>
         </div>
       </div>
     );
@@ -39,7 +40,7 @@ export function ComposedPromptIndicator({ agentId }: { agentId: string }) {
         <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
         <div>
           <div className="font-medium">{summary}</div>
-          <div>{data.warning ?? "consider shortening or detaching skills"}</div>
+          <div>{data.warning ?? t("agents.composed.consider")}</div>
         </div>
       </div>
     );
