@@ -1,5 +1,5 @@
 use super::AppState;
-use crate::{error::AppResult, templates::model::Category};
+use crate::{error::AppResult, i18n, templates::model::Category};
 use axum::{
     Json, Router,
     extract::{Path, Query, State},
@@ -11,6 +11,7 @@ use std::sync::Arc;
 #[derive(Debug, Deserialize)]
 pub struct ListQuery {
     pub category: Option<String>,
+    pub locale: Option<String>,
 }
 
 pub fn routes() -> Router<Arc<AppState>> {
@@ -27,7 +28,13 @@ async fn list(
     Query(q): Query<ListQuery>,
 ) -> AppResult<Json<serde_json::Value>> {
     let cat = q.category.as_deref().and_then(Category::parse);
-    let resp = s.templates.list(cat);
+    // Unsupported/absent locale resolves to English (spec Section 5).
+    let locale = q
+        .locale
+        .as_deref()
+        .filter(|l| i18n::is_supported(l))
+        .unwrap_or("en");
+    let resp = s.templates.list(cat, locale);
     Ok(Json(serde_json::to_value(resp).unwrap()))
 }
 

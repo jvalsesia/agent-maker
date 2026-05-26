@@ -186,6 +186,154 @@ pub const STARTER_AGENTS: &[AgentTemplate] = &[
     },
 ];
 
+/// Localized display fields for a template, keyed by `slug`. Only the
+/// list-facing strings are translated; bodies and system prompts stay in the
+/// canonical English catalog above (see spec Section 3 trade-off). Translations
+/// roll out incrementally — a slug absent from a locale table falls back to its
+/// English entry with `is_fallback = true`.
+#[derive(Debug, Clone, Copy)]
+pub struct AgentL10n {
+    pub slug: &'static str,
+    pub name: &'static str,
+    pub preamble: &'static str,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct SkillL10n {
+    pub slug: &'static str,
+    pub name: &'static str,
+    pub description: &'static str,
+}
+
+const PT_BR_AGENTS: &[AgentL10n] = &[
+    AgentL10n {
+        slug: "writing-editor",
+        name: "Editor de Texto",
+        preamble: "Um editor de texto afiado e opinativo.",
+    },
+    AgentL10n {
+        slug: "email-drafter",
+        name: "Redator de E-mails",
+        preamble: "Redige e-mails profissionais a partir de notas soltas.",
+    },
+    AgentL10n {
+        slug: "research-analyst",
+        name: "Analista de Pesquisa",
+        preamble: "Sintetiza temas em notas estruturadas e com fontes.",
+    },
+    AgentL10n {
+        slug: "fact-checker",
+        name: "Verificador de Fatos",
+        preamble: "Põe afirmações à prova contra as evidências.",
+    },
+    AgentL10n {
+        slug: "meeting-prep",
+        name: "Preparação de Reunião",
+        preamble: "Transforma o tema de uma reunião em um resumo de uma página.",
+    },
+    AgentL10n {
+        slug: "decision-coach",
+        name: "Coach de Decisões",
+        preamble: "Estrutura decisões em opções, trade-offs e uma recomendação.",
+    },
+    AgentL10n {
+        slug: "code-mentor",
+        name: "Mentor de Código",
+        preamble: "Revisa código e explica o porquê de cada sugestão.",
+    },
+    AgentL10n {
+        slug: "sql-buddy",
+        name: "Parceiro de SQL",
+        preamble: "Escreve e depura SQL com atenção a índices e NULLs.",
+    },
+    AgentL10n {
+        slug: "study-tutor",
+        name: "Tutor de Estudos",
+        preamble: "Ensina fazendo perguntas, sem dar aula.",
+    },
+    AgentL10n {
+        slug: "journal-companion",
+        name: "Companheiro de Diário",
+        preamble: "Um ouvinte calmo e sem julgamentos.",
+    },
+];
+
+// `sql-helper` is intentionally left untranslated so a pt-BR listing exercises
+// the English fallback path (`is_fallback = true`); remaining skills follow.
+const PT_BR_SKILLS: &[SkillL10n] = &[
+    SkillL10n {
+        slug: "concise-replies",
+        name: "Respostas Concisas",
+        description: "Mantenha as respostas enxutas, fáceis de ler e sem enrolação.",
+    },
+    SkillL10n {
+        slug: "cite-sources",
+        name: "Citar Fontes",
+        description: "Atribua afirmações factuais à fonte de onde vieram.",
+    },
+    SkillL10n {
+        slug: "socratic-tutor",
+        name: "Tutor Socrático",
+        description: "Ensine fazendo perguntas guiadas em vez de entregar a resposta.",
+    },
+    SkillL10n {
+        slug: "code-reviewer",
+        name: "Revisor de Código",
+        description: "Revise código quanto a correção, clareza e estilo idiomático.",
+    },
+    SkillL10n {
+        slug: "meeting-prep-coach",
+        name: "Coach de Preparação de Reunião",
+        description: "Transforme uma reunião futura em um resumo de uma página com objetivos, perguntas e riscos.",
+    },
+    SkillL10n {
+        slug: "research-assistant",
+        name: "Assistente de Pesquisa",
+        description: "Sintetize um tema em notas estruturadas com fontes e perguntas de acompanhamento.",
+    },
+    SkillL10n {
+        slug: "blunt-editor",
+        name: "Editor Direto",
+        description: "Edite textos para clareza e força; corte, afie e aponte o que não funciona.",
+    },
+    SkillL10n {
+        slug: "decision-framer",
+        name: "Estruturador de Decisões",
+        description: "Ajude o usuário a pensar uma decisão estruturando opções, trade-offs e uma recomendação.",
+    },
+    SkillL10n {
+        slug: "wellbeing-check-in",
+        name: "Check-in de Bem-Estar",
+        description: "Abra um espaço sem julgamentos para o usuário pensar em voz alta sobre como está.",
+    },
+];
+
+fn locale_agents(locale: &str) -> Option<&'static [AgentL10n]> {
+    match locale {
+        "pt-BR" => Some(PT_BR_AGENTS),
+        _ => None,
+    }
+}
+
+fn locale_skills(locale: &str) -> Option<&'static [SkillL10n]> {
+    match locale {
+        "pt-BR" => Some(PT_BR_SKILLS),
+        _ => None,
+    }
+}
+
+/// Returns the localized agent display variant for `slug`, or `None` when no
+/// translation exists for `locale`. `en` always returns `None` because the
+/// canonical catalog is already English; callers treat `None` as "use English".
+pub fn agent_variant(slug: &str, locale: &str) -> Option<&'static AgentL10n> {
+    locale_agents(locale)?.iter().find(|a| a.slug == slug)
+}
+
+/// Localized skill display variant for `slug`; see [`agent_variant`].
+pub fn skill_variant(slug: &str, locale: &str) -> Option<&'static SkillL10n> {
+    locale_skills(locale)?.iter().find(|s| s.slug == slug)
+}
+
 pub const NAME_MAX: usize = 60;
 pub const SYSTEM_PROMPT_MAX: usize = 20_000;
 pub const SKILL_BODY_MAX: usize = 10_000;
@@ -231,6 +379,31 @@ pub fn validate() -> Result<(), String> {
             }
         }
     }
+
+    // Every localized variant must point at a real base slug and stay within
+    // the same display limits as the canonical catalog.
+    for v in PT_BR_AGENTS {
+        if find_agent(v.slug).is_none() {
+            return Err(format!("pt-BR agent variant for unknown slug {}", v.slug));
+        }
+        if v.name.is_empty() || v.name.chars().count() > NAME_MAX {
+            return Err(format!("pt-BR agent {} name length out of range", v.slug));
+        }
+        if v.preamble.is_empty() {
+            return Err(format!("pt-BR agent {} preamble empty", v.slug));
+        }
+    }
+    for v in PT_BR_SKILLS {
+        if find_skill(v.slug).is_none() {
+            return Err(format!("pt-BR skill variant for unknown slug {}", v.slug));
+        }
+        if v.name.is_empty() || v.name.chars().count() > NAME_MAX {
+            return Err(format!("pt-BR skill {} name length out of range", v.slug));
+        }
+        if v.description.is_empty() {
+            return Err(format!("pt-BR skill {} description empty", v.slug));
+        }
+    }
     Ok(())
 }
 
@@ -264,6 +437,18 @@ mod tests {
                 assert!(find_skill(s).is_some(), "{} -> {}", a.slug, s);
             }
         }
+    }
+
+    #[test]
+    fn pt_br_variant_lookup_and_fallback() {
+        // Translated slug resolves to the pt-BR display name.
+        let v = agent_variant("writing-editor", "pt-BR").expect("translated");
+        assert_eq!(v.name, "Editor de Texto");
+        // English requests never use a variant — base catalog is already English.
+        assert!(agent_variant("writing-editor", "en").is_none());
+        // Untranslated slug has no pt-BR variant (callers fall back to English).
+        assert!(skill_variant("sql-helper", "pt-BR").is_none());
+        assert!(skill_variant("concise-replies", "pt-BR").is_some());
     }
 
     #[test]

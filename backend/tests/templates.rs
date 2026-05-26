@@ -75,6 +75,62 @@ async fn list_filters_by_category(pool: PgPool) {
     assert!(!body["skills"].as_array().unwrap().is_empty());
 }
 
+fn find_by_slug<'a>(items: &'a Value, slug: &str) -> &'a Value {
+    items
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|i| i["slug"] == slug)
+        .unwrap_or_else(|| panic!("slug {slug} not in list"))
+}
+
+#[sqlx::test(migrations = "./migrations")]
+async fn templates_returns_locale_variant(pool: PgPool) {
+    let app = build_app_with_store(pool, make_store());
+    let resp = app
+        .oneshot(req_get("/api/templates?locale=pt-BR"))
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+    let body = json_body(resp).await;
+
+    let agent = find_by_slug(&body["agents"], "writing-editor");
+    assert_eq!(agent["name"], "Editor de Texto");
+    assert_eq!(agent["is_fallback"], false);
+
+    let skill = find_by_slug(&body["skills"], "concise-replies");
+    assert_eq!(skill["name"], "Respostas Concisas");
+    assert_eq!(skill["is_fallback"], false);
+}
+
+#[sqlx::test(migrations = "./migrations")]
+async fn templates_falls_back_to_en(pool: PgPool) {
+    let app = build_app_with_store(pool, make_store());
+    let resp = app
+        .oneshot(req_get("/api/templates?locale=pt-BR"))
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+    let body = json_body(resp).await;
+
+    // `sql-helper` has no pt-BR translation: English content, fallback flagged.
+    let skill = find_by_slug(&body["skills"], "sql-helper");
+    assert_eq!(skill["name"], "SQL Helper");
+    assert_eq!(skill["is_fallback"], true);
+}
+
+#[sqlx::test(migrations = "./migrations")]
+async fn templates_default_locale_is_en(pool: PgPool) {
+    let app = build_app_with_store(pool, make_store());
+    let resp = app.oneshot(req_get("/api/templates")).await.unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+    let body = json_body(resp).await;
+    let agent = find_by_slug(&body["agents"], "writing-editor");
+    assert_eq!(agent["name"], "Writing Editor");
+    // English is the requested locale, not a fallback.
+    assert_eq!(agent["is_fallback"], false);
+}
+
 #[sqlx::test(migrations = "./migrations")]
 async fn preview_agent_includes_suggested_skill_descriptions(pool: PgPool) {
     let app = build_app_with_store(pool, make_store());
