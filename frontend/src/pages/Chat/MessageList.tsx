@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { MessageSquare } from "lucide-react";
 import type { Message } from "@/lib/api";
@@ -28,6 +29,15 @@ export function MessageList({
   onRetryTurn,
 }: Props) {
   const { t } = useTranslation();
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to the latest content whenever messages, the streamed draft,
+  // or the optimistic user bubble change.
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [messages.length, pendingUser, draft?.content]);
+
   if (loading) {
     return <p className="p-6 text-sm text-muted-foreground">{t("chat.loadingMessages")}</p>;
   }
@@ -54,7 +64,7 @@ export function MessageList({
   }
 
   return (
-    <div className="flex-1 space-y-3 overflow-y-auto p-4">
+    <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto p-4">
       {messages.map((m) => (
         <MessageBubble key={m.id} message={m} onRetry={onRetryTurn} />
       ))}
