@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { AlertTriangle, ChevronDown, ChevronRight, Copy, Trash2 } from "lucide-react";
 import {
@@ -7,7 +8,9 @@ import {
   type AgentUpsert,
   type AgentWarning,
   type ProviderName,
+  type ResponseLanguage,
 } from "@/lib/api";
+import { SUPPORTED_LOCALES } from "@/i18n/locales/supported";
 import {
   useAgent,
   useAgentModels,
@@ -44,6 +47,7 @@ interface FieldErrors {
 }
 
 export function AgentForm() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const editing = !!id;
   const navigate = useNavigate();
@@ -58,6 +62,7 @@ export function AgentForm() {
   const [model, setModel] = useState("");
   const [recentN, setRecentN] = useState<string>("");
   const [topK, setTopK] = useState<string>("");
+  const [responseLanguage, setResponseLanguage] = useState<ResponseLanguage>("auto");
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [keyInput, setKeyInput] = useState("");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
@@ -74,6 +79,7 @@ export function AgentForm() {
     setModel(a.model);
     setRecentN(a.recent_n_override?.toString() ?? "");
     setTopK(a.top_k_override?.toString() ?? "");
+    setResponseLanguage(a.response_language ?? "auto");
   }, [existing.data?.agent]);
 
   const modelsQuery = useAgentModels(provider);
@@ -103,6 +109,7 @@ export function AgentForm() {
     model,
     recent_n_override: recentN ? Number(recentN) : null,
     top_k_override: topK ? Number(topK) : null,
+    response_language: responseLanguage,
   });
 
   const handleApiError = (e: unknown) => {
@@ -122,7 +129,7 @@ export function AgentForm() {
         ? await update.mutateAsync(body)
         : await create.mutateAsync(body);
       setWarnings(resp.warnings);
-      toast.success(`Agent saved`);
+      toast.success(t("agents.form.saved"));
       if (thenChat) {
         // F06/F07 will turn this into a fresh conversation. For now jump to the detail page.
         navigate(`/agents/${resp.agent.id}`);
@@ -138,7 +145,7 @@ export function AgentForm() {
     if (!id) return;
     try {
       const r = await clone.mutateAsync({ id });
-      toast.success(`Cloned as ${r.agent.name}`);
+      toast.success(t("agents.form.cloned", { name: r.agent.name }));
       navigate(`/agents/${r.agent.id}`);
     } catch (e) {
       handleApiError(e);
@@ -149,7 +156,7 @@ export function AgentForm() {
     if (!id) return;
     try {
       await del.mutateAsync(id);
-      toast.success("Deleted");
+      toast.success(t("agents.form.deleted"));
       navigate("/agents");
     } catch (e) {
       handleApiError(e);
@@ -160,7 +167,7 @@ export function AgentForm() {
     if (!id || !keyInput.trim()) return;
     try {
       const r = await saveKey.mutateAsync(keyInput.trim());
-      toast.success(`Per-agent key saved (${r.key_masked})`);
+      toast.success(t("agents.form.keySaved", { masked: r.key_masked }));
       setKeyInput("");
     } catch (e) {
       handleApiError(e);
@@ -171,7 +178,7 @@ export function AgentForm() {
     if (!id) return;
     try {
       await deleteKey.mutateAsync();
-      toast.success("Per-agent key removed");
+      toast.success(t("agents.form.keyRemoved"));
     } catch (e) {
       handleApiError(e);
     }
@@ -186,53 +193,53 @@ export function AgentForm() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">
-            {editing ? agent?.name ?? "Agent" : "New agent"}
+            {editing ? agent?.name ?? t("agents.form.fallbackTitle") : t("agents.form.newTitle")}
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
             <Link to="/agents" className="underline">
-              All agents
+              {t("agents.form.allAgents")}
             </Link>
           </p>
         </div>
         {editing && id && (
           <Button variant="outline" onClick={() => navigate(`/agents/${id}/chat`)}>
-            Open chat
+            {t("agents.form.openChat")}
           </Button>
         )}
       </div>
 
       <div className="mt-6 space-y-5">
-        <Field label="Name" error={fieldErrors.name}>
+        <Field label={t("agents.form.name")} error={fieldErrors.name}>
           <Input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="e.g. Writing Editor"
+            placeholder={t("agents.form.namePlaceholder")}
             maxLength={60}
           />
         </Field>
 
         <Field
-          label="Preamble"
+          label={t("agents.form.preamble")}
           hint={`${preamble.length} / 500`}
           error={fieldErrors.preamble}
         >
           <Input
             value={preamble}
             onChange={(e) => setPreamble(e.target.value)}
-            placeholder="Short blurb shown in lists"
+            placeholder={t("agents.form.preamblePlaceholder")}
             maxLength={500}
           />
         </Field>
 
         <Field
-          label="System prompt"
-          hint={`${systemPrompt.length} chars`}
+          label={t("agents.form.systemPrompt")}
+          hint={t("agents.form.systemPromptChars", { count: systemPrompt.length })}
           error={fieldErrors.system_prompt}
         >
           <Textarea
             value={systemPrompt}
             onChange={(e) => setSystemPrompt(e.target.value)}
-            placeholder="You are a…"
+            placeholder={t("agents.form.systemPromptPlaceholder")}
             rows={12}
             className="font-mono text-xs"
           />
@@ -244,7 +251,7 @@ export function AgentForm() {
         </Field>
 
         <div className="grid grid-cols-2 gap-4">
-          <Field label="Provider" error={fieldErrors.provider}>
+          <Field label={t("agents.form.provider")} error={fieldErrors.provider}>
             <Select value={provider} onValueChange={(v) => { setProvider(v as ProviderName); setModel(""); }}>
               <SelectTrigger>
                 <SelectValue />
@@ -257,16 +264,16 @@ export function AgentForm() {
             </Select>
             {noKeyWarning && (
               <p className="mt-1 flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400">
-                <AlertTriangle className="h-3 w-3" /> No key configured for {PROVIDER_LABELS[provider]}.{" "}
-                <Link to="/settings" className="underline">Go to Settings</Link>
+                <AlertTriangle className="h-3 w-3" /> {t("agents.form.noKeyWarning", { provider: PROVIDER_LABELS[provider] })}{" "}
+                <Link to="/settings" className="underline">{t("agents.form.goToSettings")}</Link>
               </p>
             )}
           </Field>
 
-          <Field label="Model" error={fieldErrors.model}>
+          <Field label={t("agents.form.model")} error={fieldErrors.model}>
             <Select value={model} onValueChange={setModel}>
               <SelectTrigger>
-                <SelectValue placeholder={modelsQuery.data ? "Choose a model" : "Loading…"} />
+                <SelectValue placeholder={modelsQuery.data ? t("agents.form.chooseModel") : t("common.loading")} />
               </SelectTrigger>
               <SelectContent>
                 {(modelsQuery.data?.models ?? []).map((m) => (
@@ -279,8 +286,8 @@ export function AgentForm() {
 
         <div className="grid grid-cols-2 gap-4">
           <Field
-            label="Recent-N override"
-            hint={`global: ${settings?.memory_defaults.recent_n ?? 10}`}
+            label={t("agents.form.recentNOverride")}
+            hint={t("agents.form.globalHint", { value: settings?.memory_defaults.recent_n ?? 10 })}
             error={fieldErrors.recent_n_override}
           >
             <Input
@@ -289,12 +296,12 @@ export function AgentForm() {
               max={30}
               value={recentN}
               onChange={(e) => setRecentN(e.target.value)}
-              placeholder="optional"
+              placeholder={t("agents.form.optional")}
             />
           </Field>
           <Field
-            label="Top-K override"
-            hint={`global: ${settings?.memory_defaults.top_k ?? 5}`}
+            label={t("agents.form.topKOverride")}
+            hint={t("agents.form.globalHint", { value: settings?.memory_defaults.top_k ?? 5 })}
             error={fieldErrors.top_k_override}
           >
             <Input
@@ -303,10 +310,32 @@ export function AgentForm() {
               max={10}
               value={topK}
               onChange={(e) => setTopK(e.target.value)}
-              placeholder="optional"
+              placeholder={t("agents.form.optional")}
             />
           </Field>
         </div>
+
+        <Field
+          label={t("agents.form.responseLanguage")}
+          hint={t("agents.form.responseLanguageHint")}
+        >
+          <Select
+            value={responseLanguage}
+            onValueChange={(v) => setResponseLanguage(v as ResponseLanguage)}
+          >
+            <SelectTrigger className="max-w-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="auto">{t("agents.form.responseLanguageAuto")}</SelectItem>
+              {SUPPORTED_LOCALES.map((l) => (
+                <SelectItem key={l.code} value={l.code}>
+                  {l.nativeName}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Field>
 
         {editing && id && <AgentSkillsPanel agentId={id} />}
 
@@ -318,33 +347,33 @@ export function AgentForm() {
               className="flex w-full items-center gap-2 px-4 py-3 text-sm font-medium"
             >
               {showAdvanced ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-              Advanced — per-agent API key
+              {t("agents.form.advanced")}
             </button>
             {showAdvanced && (
               <div className="border-t border-border px-4 py-4 space-y-3">
                 {hasOverrideKey && (
                   <p className="text-xs text-muted-foreground">
-                    An override key is currently set for this agent.
+                    {t("agents.form.overrideKeySet")}
                   </p>
                 )}
                 <div className="space-y-1">
-                  <Label htmlFor="agent-key">API key</Label>
+                  <Label htmlFor="agent-key">{t("common.apiKey")}</Label>
                   <Input
                     id="agent-key"
                     type="password"
                     autoComplete="off"
-                    placeholder={hasOverrideKey ? "Replace key (leave empty to keep)" : "Paste key here"}
+                    placeholder={hasOverrideKey ? t("agents.form.replaceKeyPlaceholder") : t("agents.form.pasteKeyPlaceholder")}
                     value={keyInput}
                     onChange={(e) => setKeyInput(e.target.value)}
                   />
                 </div>
                 <div className="flex gap-2">
                   <Button onClick={onSaveKey} disabled={!keyInput.trim() || saveKey.isPending}>
-                    Save key
+                    {t("agents.form.saveKey")}
                   </Button>
                   {hasOverrideKey && (
                     <Button variant="outline" onClick={onRemoveKey} disabled={deleteKey.isPending}>
-                      Remove override
+                      {t("agents.form.removeOverride")}
                     </Button>
                   )}
                 </div>
@@ -361,22 +390,22 @@ export function AgentForm() {
           className={editing ? "text-destructive" : "invisible"}
           disabled={!editing}
         >
-          <Trash2 className="mr-1 h-4 w-4" /> Delete
+          <Trash2 className="mr-1 h-4 w-4" /> {t("common.delete")}
         </Button>
         <div className="flex items-center gap-2">
           {editing && (
             <Button variant="outline" onClick={onClone}>
-              <Copy className="mr-1 h-4 w-4" /> Clone
+              <Copy className="mr-1 h-4 w-4" /> {t("common.clone")}
             </Button>
           )}
           <Button variant="outline" onClick={() => navigate("/agents")}>
-            Cancel
+            {t("common.cancel")}
           </Button>
           <Button variant="outline" onClick={() => save(false)} disabled={saving}>
-            {saving ? "Saving…" : "Save"}
+            {saving ? t("common.saving") : t("common.save")}
           </Button>
           <Button onClick={() => save(true)} disabled={saving}>
-            Save and chat
+            {t("agents.form.saveAndChat")}
           </Button>
         </div>
       </div>

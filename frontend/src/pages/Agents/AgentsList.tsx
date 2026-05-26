@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { Bot, Copy, MessageSquare, Plus, Trash2 } from "lucide-react";
 import { ApiError, type AgentSort } from "@/lib/api";
@@ -16,6 +17,7 @@ import {
 import { DeleteAgentDialog } from "./DeleteAgentDialog";
 
 export function AgentsList() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<AgentSort>("name");
@@ -38,7 +40,7 @@ export function AgentsList() {
   const onClone = async (id: string) => {
     try {
       const r = await clone.mutateAsync({ id });
-      toast.success(`Cloned as ${r.agent.name}`);
+      toast.success(t("agents.list.cloned", { name: r.agent.name }));
     } catch (e) {
       toast.error(e instanceof ApiError ? e.body.error.message : String(e));
     }
@@ -48,7 +50,7 @@ export function AgentsList() {
     if (!pendingDelete) return;
     try {
       await del.mutateAsync(pendingDelete.id);
-      toast.success(`Deleted ${pendingDelete.name}`);
+      toast.success(t("agents.list.deleted", { name: pendingDelete.name }));
       setPendingDelete(null);
     } catch (e) {
       toast.error(e instanceof ApiError ? e.body.error.message : String(e));
@@ -59,44 +61,42 @@ export function AgentsList() {
     <div className="mx-auto max-w-4xl">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Agents</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Personas you can chat with. Each agent has its own system prompt, provider, and model.
-          </p>
+          <h1 className="text-2xl font-semibold tracking-tight">{t("agents.list.title")}</h1>
+          <p className="text-sm text-muted-foreground mt-1">{t("agents.list.subtitle")}</p>
         </div>
         <Button onClick={() => navigate("/agents/new")}>
-          <Plus className="mr-1 h-4 w-4" /> New Agent
+          <Plus className="mr-1 h-4 w-4" /> {t("agents.list.newButton")}
         </Button>
       </div>
 
       <div className="mt-6 flex items-center gap-3">
         <Input
-          placeholder="Search by name or preamble…"
+          placeholder={t("agents.list.searchPlaceholder")}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="max-w-sm"
         />
         <Select value={sort} onValueChange={(v) => setSort(v as AgentSort)}>
           <SelectTrigger className="w-40">
-            <SelectValue placeholder="Sort" />
+            <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="name">Name</SelectItem>
-            <SelectItem value="last_used">Last used</SelectItem>
-            <SelectItem value="created">Created</SelectItem>
+            <SelectItem value="name">{t("agents.list.sortName")}</SelectItem>
+            <SelectItem value="last_used">{t("agents.list.sortLastUsed")}</SelectItem>
+            <SelectItem value="created">{t("agents.list.sortCreated")}</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
       <div className="mt-4 space-y-2">
         {isLoading ? (
-          <p className="text-sm text-muted-foreground">Loading…</p>
+          <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
         ) : agents.length === 0 ? (
           <div className="rounded-md border border-dashed border-border p-10 text-center">
             <Bot className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">No agents yet — create your first one.</p>
+            <p className="text-sm text-muted-foreground">{t("agents.list.empty")}</p>
             <Button className="mt-4" onClick={() => navigate("/agents/new")}>
-              <Plus className="mr-1 h-4 w-4" /> Create agent
+              <Plus className="mr-1 h-4 w-4" /> {t("agents.list.createButton")}
             </Button>
           </div>
         ) : (
@@ -121,7 +121,7 @@ export function AgentsList() {
                   variant="ghost"
                   size="sm"
                   onClick={() => navigate(`/agents/${a.id}/chat`)}
-                  aria-label="Open chat"
+                  aria-label={t("agents.list.openChat")}
                 >
                   <MessageSquare className="h-4 w-4" />
                 </Button>

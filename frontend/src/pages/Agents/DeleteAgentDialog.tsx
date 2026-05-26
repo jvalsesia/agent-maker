@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import {
   Dialog,
   DialogContent,
@@ -22,26 +23,26 @@ interface Props {
 }
 
 export function DeleteAgentDialog({ open, agent, pending, onClose, onConfirm }: Props) {
+  const { t } = useTranslation();
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Delete agent</DialogTitle>
+          <DialogTitle>{t("agents.deleteDialog.title")}</DialogTitle>
           <DialogDescription>
-            This will permanently remove the agent
-            {agent ? ` “${agent.name}”` : ""} from your workspace.
+            {t("agents.deleteDialog.body", { name: agent ? `“${agent.name}”` : "" })}
           </DialogDescription>
         </DialogHeader>
         <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-          <li>{agent?.conversation_count ?? 0} conversation(s) will be deleted</li>
-          <li>{agent?.attached_skill_count ?? 0} attached skill(s) will be detached</li>
+          <li>{t("agents.deleteDialog.conversations", { count: agent?.conversation_count ?? 0 })}</li>
+          <li>{t("agents.deleteDialog.skills", { count: agent?.attached_skill_count ?? 0 })}</li>
         </ul>
         <DialogFooter>
           <Button variant="ghost" onClick={onClose} disabled={pending}>
-            Cancel
+            {t("common.cancel")}
           </Button>
           <Button variant="destructive" onClick={onConfirm} disabled={pending}>
-            {pending ? "Deleting…" : "Delete"}
+            {pending ? t("common.deleting") : t("common.delete")}
           </Button>
         </DialogFooter>
       </DialogContent>

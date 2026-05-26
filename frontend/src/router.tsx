@@ -1,8 +1,10 @@
 import { lazy, Suspense } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Layout } from "@/components/Layout";
 import { useSettings } from "@/hooks/useSettings";
 import { useApplyTheme } from "@/hooks/useTheme";
+import { applyLocale } from "@/hooks/useLocale";
 
 const OnboardingPage = lazy(() =>
   import("@/pages/Onboarding").then((m) => ({ default: m.OnboardingPage })),
@@ -30,25 +32,27 @@ const ChatPage = lazy(() =>
 );
 
 function Gate({ children }: { children: React.ReactNode }) {
+  const { t } = useTranslation();
   const { data, isLoading, error } = useSettings();
   useApplyTheme(data?.appearance.theme);
+  if (data?.appearance.locale) applyLocale(data.appearance.locale);
 
   if (isLoading) {
-    return <div className="flex h-screen items-center justify-center text-sm text-muted-foreground">Loading…</div>;
+    return <div className="flex h-screen items-center justify-center text-sm text-muted-foreground">{t("common.loading")}</div>;
   }
   if (error) {
     return (
       <div className="mx-auto mt-24 max-w-xl text-center space-y-3">
-        <h1 className="text-xl font-semibold">Database unavailable</h1>
+        <h1 className="text-xl font-semibold">{t("gate.dbUnavailableTitle")}</h1>
         <p className="text-sm text-muted-foreground">
-          The backend cannot reach Postgres. Start it with:
+          {t("gate.dbUnavailableBody")}
         </p>
         <pre className="rounded-md border border-border bg-muted p-3 text-left text-xs">docker compose up -d</pre>
         <button
           onClick={() => location.reload()}
           className="text-sm underline text-foreground"
         >
-          Retry
+          {t("common.retry")}
         </button>
       </div>
     );

@@ -65,6 +65,9 @@ pub struct AgentTemplateSummary {
     pub category: &'static str,
     pub preamble: &'static str,
     pub suggested_skills: &'static [&'static str],
+    /// `true` when the `en` variant was returned because no translation exists
+    /// for the requested locale. See spec Section 5.
+    pub is_fallback: bool,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -73,6 +76,9 @@ pub struct SkillTemplateSummary {
     pub name: &'static str,
     pub category: &'static str,
     pub description: &'static str,
+    /// `true` when the `en` variant was returned because no translation exists
+    /// for the requested locale. See spec Section 5.
+    pub is_fallback: bool,
 }
 
 #[derive(Debug, Clone, Serialize)]

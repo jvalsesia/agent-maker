@@ -1,6 +1,9 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import type { RecalledRef } from "@/lib/api";
+import { useLocale } from "@/hooks/useLocale";
+import { formatDateTime, formatPercent } from "@/lib/format";
 
 /**
  * Collapsible "Recalled N earlier turns" indicator shown under an assistant
@@ -8,6 +11,8 @@ import type { RecalledRef } from "@/lib/api";
  */
 export function RecalledTurns({ recalled }: { recalled: RecalledRef[] }) {
   const [open, setOpen] = useState(false);
+  const { t } = useTranslation();
+  const locale = useLocale();
   if (recalled.length === 0) return null;
 
   return (
@@ -18,7 +23,7 @@ export function RecalledTurns({ recalled }: { recalled: RecalledRef[] }) {
         aria-expanded={open}
       >
         {open ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-        Recalled {recalled.length} earlier turn{recalled.length === 1 ? "" : "s"}
+        {t("chat.recalled", { count: recalled.length })}
       </button>
       {open && (
         <ul className="mt-2 space-y-2">
@@ -27,7 +32,7 @@ export function RecalledTurns({ recalled }: { recalled: RecalledRef[] }) {
               <div className="mb-1 flex items-center justify-between text-muted-foreground">
                 <span className="uppercase tracking-wide">{r.role}</span>
                 <span>
-                  {new Date(r.created_at).toLocaleString()} · {(r.similarity * 100).toFixed(0)}% match
+                  {formatDateTime(r.created_at, locale)} · {formatPercent(r.similarity, locale)} {t("chat.match")}
                 </span>
               </div>
               <p className="whitespace-pre-wrap text-foreground/80 line-clamp-4">{r.content}</p>

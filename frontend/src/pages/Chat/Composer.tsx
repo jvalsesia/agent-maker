@@ -1,4 +1,5 @@
 import { useEffect, useRef, type KeyboardEvent } from "react";
+import { useTranslation } from "react-i18next";
 import { Send, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -17,6 +18,7 @@ interface Props {
  * blocked with an inline notice. The draft is preserved per conversation.
  */
 export function Composer({ conversationId, streaming, onSend, onStop }: Props) {
+  const { t } = useTranslation();
   const { getDraft, setDraft } = useDrafts();
   const ref = useRef<HTMLTextAreaElement>(null);
   const draft = getDraft(conversationId);
@@ -50,14 +52,14 @@ export function Composer({ conversationId, streaming, onSend, onStop }: Props) {
     <div className="border-t border-border p-3">
       {streaming && (
         <p className="mb-2 text-xs text-muted-foreground" role="status">
-          Generating a response… new messages are blocked until it finishes.
+          {t("chat.composer.generating")}
         </p>
       )}
       <div className="flex items-end gap-2">
         <Textarea
           ref={ref}
-          aria-label="Message"
-          placeholder="Send a message…  (Enter to send, Shift+Enter for newline)"
+          aria-label={t("chat.composer.ariaMessage")}
+          placeholder={t("chat.composer.placeholder")}
           value={draft}
           onChange={(e) => setDraft(conversationId, e.target.value)}
           onKeyDown={onKeyDown}
@@ -65,13 +67,13 @@ export function Composer({ conversationId, streaming, onSend, onStop }: Props) {
           className="resize-none"
         />
         {streaming ? (
-          <Button variant="destructive" size="icon" aria-label="Stop" onClick={onStop}>
+          <Button variant="destructive" size="icon" aria-label={t("chat.composer.ariaStop")} onClick={onStop}>
             <Square className="h-4 w-4" />
           </Button>
         ) : (
           <Button
             size="icon"
-            aria-label="Send"
+            aria-label={t("chat.composer.ariaSend")}
             disabled={!draft.trim()}
             onClick={submit}
           >

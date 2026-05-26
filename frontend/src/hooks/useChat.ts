@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { ApiError, chatStream, type ChatRecalledTurn, type ChatStartInput } from "@/lib/api";
+import { useLocale } from "./useLocale";
 import { conversationsKey, messagesKey } from "./useConversations";
 
 /** Live state of the assistant reply currently being streamed. */
@@ -27,6 +28,7 @@ const EMPTY_DRAFT: DraftAssistant = { content: "", recalled: [], degraded: false
  */
 export function useChat(conversationId: string | undefined, agentId: string) {
   const qc = useQueryClient();
+  const locale = useLocale();
   const [streaming, setStreaming] = useState(false);
   const [assistant, setAssistant] = useState<DraftAssistant | null>(null);
   const [pendingUser, setPendingUser] = useState<string | null>(null);
@@ -46,7 +48,7 @@ export function useChat(conversationId: string | undefined, agentId: string) {
       let aborted = false;
 
       try {
-        for await (const ev of chatStream(conversationId, input, controller.signal)) {
+        for await (const ev of chatStream(conversationId, { locale, ...input }, controller.signal)) {
           if (ev.type === "meta") {
             setAssistant((a) => ({
               ...(a ?? EMPTY_DRAFT),
@@ -81,7 +83,7 @@ export function useChat(conversationId: string | undefined, agentId: string) {
         setPendingUser(null);
       }
     },
-    [conversationId, agentId, qc],
+    [conversationId, agentId, qc, locale],
   );
 
   const send = useCallback((content: string) => run({ content }, content), [run]);

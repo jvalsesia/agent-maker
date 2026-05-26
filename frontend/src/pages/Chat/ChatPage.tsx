@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { ArrowLeft } from "lucide-react";
 import { useConversations, useMessages } from "@/hooks/useConversations";
 import { useChat } from "@/hooks/useChat";
@@ -52,13 +53,14 @@ function ChatInner({ agentId }: { agentId: string }) {
 }
 
 function Header({ agentId }: { agentId: string }) {
+  const { t } = useTranslation();
   return (
     <div className="flex items-center gap-2 border-b border-border px-4 py-2 text-sm">
       <Link
         to={`/agents/${agentId}`}
         className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground"
       >
-        <ArrowLeft className="h-4 w-4" /> Edit agent
+        <ArrowLeft className="h-4 w-4" /> {t("chat.editAgent")}
       </Link>
     </div>
   );
@@ -73,6 +75,7 @@ function ChatSurface({
   activeId: string | null;
   loadingList: boolean;
 }) {
+  const { t } = useTranslation();
   const { data, isLoading, error, refetch } = useMessages(activeId ?? undefined);
   const { streaming, assistant, pendingUser, send, retry, stop } = useChat(
     activeId ?? undefined,
@@ -80,12 +83,12 @@ function ChatSurface({
   );
 
   if (loadingList) {
-    return <p className="p-6 text-sm text-muted-foreground">Loading…</p>;
+    return <p className="p-6 text-sm text-muted-foreground">{t("common.loading")}</p>;
   }
   if (!activeId) {
     return (
       <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
-        Select or create a conversation to begin.
+        {t("chat.selectConversation")}
       </div>
     );
   }

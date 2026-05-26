@@ -4,6 +4,7 @@ pub mod config;
 pub mod conversations;
 pub mod db;
 pub mod error;
+pub mod i18n;
 pub mod llm;
 pub mod memory;
 pub mod routes;

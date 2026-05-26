@@ -113,8 +113,11 @@ impl ChatService {
             )
             .await?;
 
-        // Base system = agent prompt + ordered skill bodies (F04 compose).
-        let base_system = self.attachments.compose(agent_id).await?.composed;
+        // Base system = agent prompt + ordered skill bodies (F04 compose),
+        // optionally prefixed with the F09 response-language directive.
+        let composed_base = self.attachments.compose(agent_id).await?.composed;
+        let base_system =
+            apply_language_directive(&agent.response_language, req.locale.as_deref(), &composed_base);
         let budget = model_context_chars(&agent.provider, &agent.model);
         let reserve = DEFAULT_MAX_TOKENS as i64 * CHARS_PER_TOKEN;
         let composed = compose(&base_system, &block, budget, reserve)?;
@@ -419,5 +422,63 @@ fn chat_error_to_app(e: ChatError, provider: &str) -> AppError {
                 status: StatusCode::BAD_GATEWAY,
             }
         }
+    }
+}
+
+/// Resolve the effective response language (F09): a specific per-agent
+/// `response_language` wins; otherwise the request's UI locale; otherwise
+/// English. `auto` and unsupported request locales fall through to `en`.
+fn resolve_response_language(agent_language: &str, req_locale: Option<&str>) -> String {
+    if crate::i18n::is_supported(agent_language) {
+        return agent_language.to_string();
+    }
+    match req_locale {
+        Some(l) if crate::i18n::is_supported(l) => l.to_string(),
+        _ => "en".to_string(),
+    }
+}
+
+/// Prepend a "respond in <language>" directive to the composed system prompt
+/// unless the resolved language is English (the model's default).
+fn apply_language_directive(agent_language: &str, req_locale: Option<&str>, base: &str) -> String {
+    let lang = resolve_response_language(agent_language, req_locale);
+    if lang == "en" {
+        return base.to_string();
+    }
+    let name = crate::i18n::language_name(&lang);
+    format!("Respond in {name}.\n\n{base}")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn agent_override_wins_over_request_locale() {
+        assert_eq!(resolve_response_language("pt-BR", Some("en")), "pt-BR");
+    }
+
+    #[test]
+    fn auto_falls_through_to_request_locale() {
+        assert_eq!(resolve_response_language("auto", Some("pt-BR")), "pt-BR");
+    }
+
+    #[test]
+    fn auto_without_locale_defaults_to_en() {
+        assert_eq!(resolve_response_language("auto", None), "en");
+        assert_eq!(resolve_response_language("auto", Some("fr")), "en");
+    }
+
+    #[test]
+    fn directive_added_for_portuguese() {
+        let out = apply_language_directive("auto", Some("pt-BR"), "BASE");
+        assert!(out.starts_with("Respond in Brazilian Portuguese."));
+        assert!(out.ends_with("BASE"));
+    }
+
+    #[test]
+    fn no_directive_for_english() {
+        let out = apply_language_directive("auto", Some("en"), "BASE");
+        assert_eq!(out, "BASE");
     }
 }

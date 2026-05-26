@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { ApiError } from "@/lib/api";
 import { useSettings, useUpdateSettings } from "@/hooks/useSettings";
@@ -8,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export function MemoryDefaultsSection() {
+  const { t } = useTranslation();
   const { data } = useSettings();
   const update = useUpdateSettings();
   const [recentN, setRecentN] = useState(10);
@@ -23,7 +25,7 @@ export function MemoryDefaultsSection() {
   const save = async () => {
     try {
       await update.mutateAsync({ memory_defaults: { recent_n: recentN, top_k: topK } });
-      toast.success("Memory defaults saved");
+      toast.success(t("settings.memory.saved"));
     } catch (e) {
       toast.error(e instanceof ApiError ? e.body.error.message : String(e));
     }
@@ -32,15 +34,13 @@ export function MemoryDefaultsSection() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Memory defaults</CardTitle>
-        <CardDescription>
-          Recent N: verbatim turns included in every request. Top K: older turns retrieved via semantic search.
-        </CardDescription>
+        <CardTitle>{t("settings.memory.title")}</CardTitle>
+        <CardDescription>{t("settings.memory.description")}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-2 gap-4 max-w-md">
           <div className="space-y-1">
-            <Label htmlFor="recentN">Recent N (4–30)</Label>
+            <Label htmlFor="recentN">{t("settings.memory.recentN")}</Label>
             <Input
               id="recentN"
               type="number"
@@ -51,7 +51,7 @@ export function MemoryDefaultsSection() {
             />
           </div>
           <div className="space-y-1">
-            <Label htmlFor="topK">Top K (0–10)</Label>
+            <Label htmlFor="topK">{t("settings.memory.topK")}</Label>
             <Input
               id="topK"
               type="number"
@@ -62,7 +62,7 @@ export function MemoryDefaultsSection() {
             />
           </div>
         </div>
-        <Button onClick={save} disabled={update.isPending}>Save</Button>
+        <Button onClick={save} disabled={update.isPending}>{t("common.save")}</Button>
       </CardContent>
     </Card>
   );

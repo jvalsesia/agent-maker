@@ -14,6 +14,7 @@ pub struct Agent {
     pub has_override_key: bool,
     pub recent_n_override: Option<i16>,
     pub top_k_override: Option<i16>,
+    pub response_language: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub last_used_at: Option<DateTime<Utc>>,
@@ -46,6 +47,12 @@ pub struct AgentUpsert {
     pub recent_n_override: Option<i16>,
     #[serde(default)]
     pub top_k_override: Option<i16>,
+    #[serde(default = "default_response_language")]
+    pub response_language: String,
+}
+
+fn default_response_language() -> String {
+    "auto".to_string()
 }
 
 #[derive(Debug, Clone, Deserialize, Default)]

@@ -75,6 +75,12 @@ impl AgentsService {
                 ));
             }
         }
+        if !crate::i18n::is_valid_response_language(&input.response_language) {
+            return Err(AppError::validation_field(
+                "response_language",
+                "must be auto, en, or pt-BR",
+            ));
+        }
 
         let mut warnings = Vec::new();
         let sp_len = input.system_prompt.chars().count();
@@ -140,7 +146,8 @@ impl AgentsService {
     pub async fn get(&self, id: Uuid) -> AppResult<Agent> {
         let agent: Option<Agent> = sqlx::query_as(
             r#"SELECT id, name, preamble, system_prompt, provider, model, has_override_key,
-                      recent_n_override, top_k_override, created_at, updated_at, last_used_at
+                      recent_n_override, top_k_override, response_language,
+                      created_at, updated_at, last_used_at
                FROM agents WHERE id = $1"#,
         )
         .bind(id)
@@ -153,10 +160,12 @@ impl AgentsService {
         let warnings = Self::validate(&input)?;
         let row = sqlx::query_as::<_, Agent>(
             r#"INSERT INTO agents
-                 (name, preamble, system_prompt, provider, model, recent_n_override, top_k_override)
-               VALUES ($1, $2, $3, $4, $5, $6, $7)
+                 (name, preamble, system_prompt, provider, model, recent_n_override, top_k_override,
+                  response_language)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
                RETURNING id, name, preamble, system_prompt, provider, model, has_override_key,
-                         recent_n_override, top_k_override, created_at, updated_at, last_used_at"#,
+                         recent_n_override, top_k_override, response_language,
+                         created_at, updated_at, last_used_at"#,
         )
         .bind(input.name.trim())
         .bind(input.preamble.as_deref())
@@ -165,6 +174,7 @@ impl AgentsService {
         .bind(&input.model)
         .bind(input.recent_n_override)
         .bind(input.top_k_override)
+        .bind(&input.response_language)
         .fetch_one(&self.pool)
         .await
         .map_err(map_unique_violation)?;
@@ -176,10 +186,11 @@ impl AgentsService {
         let row: Option<Agent> = sqlx::query_as(
             r#"UPDATE agents
                SET name=$2, preamble=$3, system_prompt=$4, provider=$5, model=$6,
-                   recent_n_override=$7, top_k_override=$8
+                   recent_n_override=$7, top_k_override=$8, response_language=$9
                WHERE id=$1
                RETURNING id, name, preamble, system_prompt, provider, model, has_override_key,
-                         recent_n_override, top_k_override, created_at, updated_at, last_used_at"#,
+                         recent_n_override, top_k_override, response_language,
+                         created_at, updated_at, last_used_at"#,
         )
         .bind(id)
         .bind(input.name.trim())
@@ -189,6 +200,7 @@ impl AgentsService {
         .bind(&input.model)
         .bind(input.recent_n_override)
         .bind(input.top_k_override)
+        .bind(&input.response_language)
         .fetch_optional(&self.pool)
         .await
         .map_err(map_unique_violation)?;
@@ -226,10 +238,12 @@ impl AgentsService {
 
         let row = sqlx::query_as::<_, Agent>(
             r#"INSERT INTO agents
-                 (name, preamble, system_prompt, provider, model, recent_n_override, top_k_override)
-               VALUES ($1, $2, $3, $4, $5, $6, $7)
+                 (name, preamble, system_prompt, provider, model, recent_n_override, top_k_override,
+                  response_language)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
                RETURNING id, name, preamble, system_prompt, provider, model, has_override_key,
-                         recent_n_override, top_k_override, created_at, updated_at, last_used_at"#,
+                         recent_n_override, top_k_override, response_language,
+                         created_at, updated_at, last_used_at"#,
         )
         .bind(&final_name)
         .bind(src.preamble.as_deref())
@@ -238,6 +252,7 @@ impl AgentsService {
         .bind(&src.model)
         .bind(src.recent_n_override)
         .bind(src.top_k_override)
+        .bind(&src.response_language)
         .fetch_one(&self.pool)
         .await?;
         Ok(AgentResponse { agent: row, warnings: Vec::new() })
@@ -337,6 +352,7 @@ mod tests {
             model: "claude-haiku-4-5".into(),
             recent_n_override: None,
             top_k_override: None,
+            response_language: "auto".into(),
         }
     }
 
@@ -372,6 +388,20 @@ mod tests {
         let mut v = valid();
         v.top_k_override = Some(11);
         assert!(matches!(AgentsService::validate(&v), Err(AppError::Validation { .. })));
+    }
+
+    #[test]
+    fn rejects_bad_response_language() {
+        let mut v = valid();
+        v.response_language = "fr".into();
+        assert!(matches!(AgentsService::validate(&v), Err(AppError::Validation { .. })));
+    }
+
+    #[test]
+    fn accepts_specific_response_language() {
+        let mut v = valid();
+        v.response_language = "pt-BR".into();
+        assert!(AgentsService::validate(&v).is_ok());
     }
 
     #[test]

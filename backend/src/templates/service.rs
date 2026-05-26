@@ -18,26 +18,39 @@ impl TemplatesService {
         Self { pool }
     }
 
-    pub fn list(&self, category: Option<Category>) -> TemplatesList {
+    /// Lists templates in the requested `locale`, substituting the localized
+    /// `name`/`preamble`/`description` where a translation exists. When a slug
+    /// has no variant for a non-`en` locale, the English text is returned with
+    /// `is_fallback = true`. `en` (and any unsupported locale resolved upstream)
+    /// always serves the canonical catalog with `is_fallback = false`.
+    pub fn list(&self, category: Option<Category>, locale: &str) -> TemplatesList {
         let agents = STARTER_AGENTS
             .iter()
             .filter(|a| category.map_or(true, |c| a.category == c))
-            .map(|a| AgentTemplateSummary {
-                slug: a.slug,
-                name: a.name,
-                category: a.category.as_str(),
-                preamble: a.preamble,
-                suggested_skills: a.suggested_skills,
+            .map(|a| {
+                let variant = catalog::agent_variant(a.slug, locale);
+                AgentTemplateSummary {
+                    slug: a.slug,
+                    name: variant.map_or(a.name, |v| v.name),
+                    category: a.category.as_str(),
+                    preamble: variant.map_or(a.preamble, |v| v.preamble),
+                    suggested_skills: a.suggested_skills,
+                    is_fallback: locale != "en" && variant.is_none(),
+                }
             })
             .collect();
         let skills = STARTER_SKILLS
             .iter()
             .filter(|s| category.map_or(true, |c| s.category == c))
-            .map(|s| SkillTemplateSummary {
-                slug: s.slug,
-                name: s.name,
-                category: s.category.as_str(),
-                description: s.description,
+            .map(|s| {
+                let variant = catalog::skill_variant(s.slug, locale);
+                SkillTemplateSummary {
+                    slug: s.slug,
+                    name: variant.map_or(s.name, |v| v.name),
+                    category: s.category.as_str(),
+                    description: variant.map_or(s.description, |v| v.description),
+                    is_fallback: locale != "en" && variant.is_none(),
+                }
             })
             .collect();
         TemplatesList { agents, skills }
@@ -95,7 +108,7 @@ impl TemplatesService {
                  (name, preamble, system_prompt, provider, model)
                VALUES ($1, $2, $3, $4, $5)
                RETURNING id, name, preamble, system_prompt, provider, model, has_override_key,
-                         recent_n_override, top_k_override,
+                         recent_n_override, top_k_override, response_language,
                          created_at, updated_at, last_used_at"#,
         )
         .bind(&agent_name)

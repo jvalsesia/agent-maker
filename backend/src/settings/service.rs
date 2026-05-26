@@ -33,7 +33,7 @@ impl SettingsService {
     pub async fn read(&self) -> AppResult<SettingsDto> {
         let row = sqlx::query(
             r#"SELECT default_provider, default_model_anthropic, default_model_openai,
-                      default_model_openai_compat, recent_n, top_k, theme
+                      default_model_openai_compat, recent_n, top_k, theme, locale
                FROM settings WHERE id='singleton'"#,
         )
         .fetch_one(&self.pool)
@@ -68,7 +68,7 @@ impl SettingsService {
                 recent_n: row.get("recent_n"),
                 top_k: row.get("top_k"),
             },
-            appearance: Appearance { theme: row.get("theme") },
+            appearance: Appearance { theme: row.get("theme"), locale: row.get("locale") },
             providers,
             key_store_backend: self.secrets.backend_name().to_string(),
         })
@@ -110,6 +110,14 @@ impl SettingsService {
                     ));
                 }
             }
+            if let Some(ref l) = a.locale {
+                if !crate::i18n::is_supported(l) {
+                    return Err(AppError::validation_field(
+                        "appearance.locale",
+                        "must be one of en, pt-BR",
+                    ));
+                }
+            }
         }
 
         let mut tx = self.pool.begin().await?;
@@ -145,6 +153,10 @@ impl SettingsService {
             if let Some(t) = a.theme {
                 sqlx::query("UPDATE settings SET theme=$1, updated_at=now() WHERE id='singleton'")
                     .bind(t).execute(&mut *tx).await?;
+            }
+            if let Some(l) = a.locale {
+                sqlx::query("UPDATE settings SET locale=$1, updated_at=now() WHERE id='singleton'")
+                    .bind(l).execute(&mut *tx).await?;
             }
         }
         tx.commit().await?;
@@ -215,7 +227,7 @@ impl SettingsService {
                    default_model_anthropic=NULL,
                    default_model_openai=NULL,
                    default_model_openai_compat=NULL,
-                   recent_n=10, top_k=5, theme='system',
+                   recent_n=10, top_k=5, theme='system', locale='en',
                    updated_at=now()
                WHERE id='singleton'"#,
         )
@@ -266,7 +278,17 @@ mod tests {
     async fn validation_rejects_bad_theme() {
         let svc = make_service().await;
         let patch = UpdateSettings {
-            appearance: Some(AppearanceUpdate { theme: Some("neon".into()) }),
+            appearance: Some(AppearanceUpdate { theme: Some("neon".into()), locale: None }),
+            ..Default::default()
+        };
+        assert!(matches!(svc.update(patch).await, Err(AppError::Validation { .. })));
+    }
+
+    #[tokio::test]
+    async fn validation_rejects_bad_locale() {
+        let svc = make_service().await;
+        let patch = UpdateSettings {
+            appearance: Some(AppearanceUpdate { theme: None, locale: Some("xx-YY".into()) }),
             ..Default::default()
         };
         assert!(matches!(svc.update(patch).await, Err(AppError::Validation { .. })));

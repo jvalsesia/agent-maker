@@ -26,6 +26,7 @@ pub struct MemoryDefaults {
 #[derive(Debug, Clone, Serialize)]
 pub struct Appearance {
     pub theme: String,
+    pub locale: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -74,6 +75,8 @@ pub struct MemoryDefaultsUpdate {
 pub struct AppearanceUpdate {
     #[serde(default)]
     pub theme: Option<String>,
+    #[serde(default)]
+    pub locale: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]

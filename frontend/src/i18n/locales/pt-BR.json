@@ -1,0 +1,306 @@
+{
+  "common": {
+    "appName": "agent-maker",
+    "loading": "Carregando…",
+    "save": "Salvar",
+    "saving": "Salvando…",
+    "cancel": "Cancelar",
+    "delete": "Excluir",
+    "deleting": "Excluindo…",
+    "clone": "Clonar",
+    "retry": "Tentar novamente",
+    "close": "Fechar",
+    "comingSoon": "Em breve",
+    "apiKey": "Chave de API"
+  },
+  "nav": {
+    "agents": "Agentes",
+    "skills": "Habilidades",
+    "templates": "Modelos",
+    "conversations": "Conversas",
+    "settings": "Configurações"
+  },
+  "gate": {
+    "dbUnavailableTitle": "Banco de dados indisponível",
+    "dbUnavailableBody": "O backend não consegue acessar o Postgres. Inicie-o com:"
+  },
+  "categories": {
+    "all": "Todos",
+    "writing": "escrita",
+    "research": "pesquisa",
+    "productivity": "produtividade",
+    "coding": "programação",
+    "learning": "aprendizado",
+    "wellbeing": "bem-estar"
+  },
+  "settings": {
+    "title": "Configurações",
+    "subtitle": "Configure provedores, padrões de memória, aparência e dados locais.",
+    "tabs": {
+      "providers": "Provedores",
+      "memory": "Memória",
+      "appearance": "Aparência",
+      "data": "Dados"
+    },
+    "appearance": {
+      "title": "Aparência",
+      "description": "Claro, escuro ou seguir a configuração do sistema.",
+      "themeChanged": "Tema: {{theme}}",
+      "language": "Idioma",
+      "languageDescription": "Escolha o idioma da interface.",
+      "languageChanged": "Idioma: {{language}}"
+    },
+    "memory": {
+      "title": "Padrões de memória",
+      "description": "Recent N: turnos literais incluídos em cada requisição. Top K: turnos antigos recuperados por busca semântica.",
+      "recentN": "Recent N (4–30)",
+      "topK": "Top K (0–10)",
+      "saved": "Padrões de memória salvos"
+    },
+    "data": {
+      "title": "Dados",
+      "description": "Excluir permanentemente todos os agentes, habilidades, conversas, embeddings e chaves de API armazenadas.",
+      "wipeButton": "Apagar dados locais",
+      "dialogTitle": "Apagar dados locais?",
+      "dialogBody": "Isto não pode ser desfeito. Digite <code>WIPE</code> para confirmar.",
+      "confirmLabel": "Confirmação",
+      "wipeConfirm": "Apagar",
+      "wiped": "Dados locais apagados"
+    },
+    "providers": {
+      "fileFallback": "Usando arquivo criptografado como alternativa — chaveiro do sistema indisponível.",
+      "configured": "configurado",
+      "notConfigured": "não configurado",
+      "replacePlaceholder": "Substituir chave (deixe vazio para manter)",
+      "pastePlaceholder": "Cole a chave aqui",
+      "baseUrl": "URL base",
+      "save": "Salvar",
+      "testing": "Testando…",
+      "testConnection": "Testar conexão",
+      "removeKey": "Remover chave",
+      "showKey": "mostrar chave",
+      "hideKey": "ocultar chave",
+      "saved": "{{name}} salvo",
+      "removed": "{{name}} removido",
+      "testOk": "OK — {{model}} ({{latency}} ms)"
+    }
+  },
+  "onboarding": {
+    "title": "Bem-vindo ao agent-maker",
+    "description": "Adicione ao menos uma chave de API de provedor para começar a criar agentes.",
+    "optionalLocal": "Opcional para endpoints locais",
+    "getKeyAt": "Obtenha uma chave em",
+    "saveContinue": "Salvar e continuar",
+    "configured": "Provedor configurado"
+  },
+  "agents": {
+    "list": {
+      "title": "Agentes",
+      "subtitle": "Personas com quem você pode conversar. Cada agente tem seu próprio prompt de sistema, provedor e modelo.",
+      "newButton": "Novo agente",
+      "searchPlaceholder": "Buscar por nome ou preâmbulo…",
+      "sortName": "Nome",
+      "sortLastUsed": "Último uso",
+      "sortCreated": "Criação",
+      "empty": "Nenhum agente ainda — crie o primeiro.",
+      "createButton": "Criar agente",
+      "openChat": "Abrir chat",
+      "cloned": "Clonado como {{name}}",
+      "deleted": "{{name}} excluído"
+    },
+    "form": {
+      "newTitle": "Novo agente",
+      "fallbackTitle": "Agente",
+      "allAgents": "Todos os agentes",
+      "openChat": "Abrir chat",
+      "name": "Nome",
+      "namePlaceholder": "ex.: Editor de Texto",
+      "preamble": "Preâmbulo",
+      "preamblePlaceholder": "Resumo curto exibido nas listas",
+      "systemPrompt": "Prompt de sistema",
+      "systemPromptPlaceholder": "Você é um…",
+      "systemPromptChars": "{{count}} caracteres",
+      "provider": "Provedor",
+      "model": "Modelo",
+      "chooseModel": "Escolha um modelo",
+      "noKeyWarning": "Nenhuma chave configurada para {{provider}}.",
+      "goToSettings": "Ir para Configurações",
+      "recentNOverride": "Substituição de Recent-N",
+      "topKOverride": "Substituição de Top-K",
+      "globalHint": "global: {{value}}",
+      "optional": "opcional",
+      "advanced": "Avançado — chave de API por agente",
+      "overrideKeySet": "Uma chave de substituição está definida para este agente.",
+      "replaceKeyPlaceholder": "Substituir chave (deixe vazio para manter)",
+      "pasteKeyPlaceholder": "Cole a chave aqui",
+      "saveKey": "Salvar chave",
+      "removeOverride": "Remover substituição",
+      "saveAndChat": "Salvar e conversar",
+      "responseLanguage": "Idioma das respostas",
+      "responseLanguageHint": "Idioma em que o agente responde.",
+      "responseLanguageAuto": "Automático (seguir meu idioma)",
+      "saved": "Agente salvo",
+      "cloned": "Clonado como {{name}}",
+      "deleted": "Excluído",
+      "keySaved": "Chave por agente salva ({{masked}})",
+      "keyRemoved": "Chave por agente removida"
+    },
+    "skillsPanel": {
+      "title": "Habilidades",
+      "empty": "Nenhuma habilidade anexada. Clique em “Anexar habilidades” para adicionar comportamento a este agente.",
+      "attach": "Anexar habilidades",
+      "moveUp": "Mover {{name}} para cima",
+      "moveDown": "Mover {{name}} para baixo",
+      "detach": "Desanexar {{name}}",
+      "updated": "Habilidades atualizadas"
+    },
+    "attachDialog": {
+      "title": "Anexar habilidades",
+      "description": "Selecione habilidades para anexar a este agente. As já anexadas vêm pré-marcadas.",
+      "searchPlaceholder": "Buscar por nome ou descrição",
+      "noMatch": "Nenhuma habilidade corresponde.",
+      "attachSelected": "Anexar selecionadas"
+    },
+    "deleteDialog": {
+      "title": "Excluir agente",
+      "body": "Isto removerá permanentemente o agente {{name}} do seu workspace.",
+      "conversations_one": "{{count}} conversa será excluída",
+      "conversations_other": "{{count}} conversa(s) serão excluídas",
+      "skills_one": "{{count}} habilidade anexada será desanexada",
+      "skills_other": "{{count}} habilidade(s) anexada(s) serão desanexadas"
+    },
+    "composed": {
+      "calculating": "Prompt composto: calculando…",
+      "unavailable": "Prompt composto: —",
+      "summary": "Prompt composto: {{used}} / {{total}} caracteres ({{pct}}%)",
+      "nearLimit": "perto do limite de contexto do modelo — o chat pode falhar",
+      "consider": "considere encurtar ou desanexar habilidades"
+    }
+  },
+  "skills": {
+    "list": {
+      "title": "Habilidades",
+      "subtitle": "Pacotes de instruções reutilizáveis. Anexe-os a qualquer agente para estender o comportamento.",
+      "newButton": "Nova habilidade",
+      "searchPlaceholder": "Buscar por nome ou descrição…",
+      "sortName": "Nome",
+      "sortAttached": "Agentes anexados",
+      "sortCreated": "Criação",
+      "empty": "Nenhuma habilidade ainda — crie a primeira.",
+      "createButton": "Criar habilidade",
+      "agentCount_one": "{{count}} agente",
+      "agentCount_other": "{{count}} agentes",
+      "cloned": "Clonado como {{name}}",
+      "deleted": "{{name}} excluída"
+    },
+    "form": {
+      "newTitle": "Nova habilidade",
+      "fallbackTitle": "Habilidade",
+      "allSkills": "Todas as habilidades",
+      "name": "Nome",
+      "namePlaceholder": "ex.: Respostas Concisas",
+      "description": "Descrição",
+      "descriptionPlaceholder": "Resumo de uma linha exibido nos seletores",
+      "body": "Corpo da instrução",
+      "bodyPlaceholder": "Prefira frases curtas. Evite enrolação…",
+      "bodyChars": "{{count}} caracteres",
+      "usedBy_one": "Usada por {{count}} agente",
+      "usedBy_other": "Usada por {{count}} agentes",
+      "noAgentsHint": "Anexe esta habilidade a um agente pela página de detalhes do agente.",
+      "saved": "Habilidade salva",
+      "cloned": "Clonado como {{name}}",
+      "deleted": "Excluída"
+    },
+    "deleteDialog": {
+      "title": "Excluir habilidade",
+      "body": "Isto removerá permanentemente a habilidade {{name}} do seu workspace.",
+      "usingAgents_one": "O seguinte {{count}} agente usa esta habilidade atualmente:",
+      "usingAgents_other": "Os seguintes {{count}} agente(s) usam esta habilidade atualmente:",
+      "willDetach": "Eles serão desanexados automaticamente.",
+      "noAgents": "Nenhum agente usa esta habilidade atualmente."
+    }
+  },
+  "chat": {
+    "editAgent": "Editar agente",
+    "selectConversation": "Selecione ou crie uma conversa para começar.",
+    "loadingMessages": "Carregando mensagens…",
+    "loadError": "Não foi possível carregar as mensagens.",
+    "emptyTitle": "Nenhuma mensagem ainda.",
+    "emptyHint": "Envie uma mensagem para iniciar a conversa.",
+    "newConversation": "Nova conversa",
+    "renameAria": "Renomear",
+    "clearMemoryAria": "Limpar memória",
+    "deleteAria": "Excluir",
+    "justNow": "agora mesmo",
+    "minAgo": "há {{n}}min",
+    "hourAgo": "há {{n}}h",
+    "dayAgo": "há {{n}}d",
+    "msgCount": "{{count}} msg",
+    "memoryCleared_one": "{{count}} turno incorporado removido",
+    "memoryCleared_other": "{{count}} turnos incorporados removidos",
+    "createError": "Não foi possível criar a conversa",
+    "renameError": "Não foi possível renomear",
+    "deleteError": "Não foi possível excluir",
+    "clearError": "Não foi possível limpar a memória",
+    "composer": {
+      "generating": "Gerando uma resposta… novas mensagens ficam bloqueadas até concluir.",
+      "placeholder": "Envie uma mensagem…  (Enter para enviar, Shift+Enter para nova linha)",
+      "ariaMessage": "Mensagem",
+      "ariaSend": "Enviar",
+      "ariaStop": "Parar"
+    },
+    "bubble": {
+      "providerFailed": "A chamada ao provedor falhou.",
+      "tokens": "~{{count}} tokens"
+    },
+    "recalled_one": "{{count}} turno anterior recuperado",
+    "recalled_other": "{{count}} turnos anteriores recuperados",
+    "match": "de correspondência",
+    "memoryUnavailable": "memória indisponível para este turno",
+    "deleteConversation": {
+      "title": "Excluir conversa?",
+      "willBeRemoved": "será removida junto com",
+      "messages_one": "{{count}} mensagem",
+      "messages_other": "{{count}} mensagens",
+      "cannotUndo": ". Isto não pode ser desfeito."
+    },
+    "clearMemory": {
+      "title": "Limpar memória de longo prazo",
+      "description": "Remover embeddings de <strong>{{title}}</strong>. As mensagens em si permanecem; apenas o índice de recuperação semântica é apagado.",
+      "embeddedTurns": "Turnos incorporados:",
+      "clearButton": "Limpar memória",
+      "clearing": "Limpando…"
+    }
+  },
+  "templates": {
+    "title": "Modelos",
+    "subtitle": "Agentes e habilidades iniciais. Adote para criar cópias editáveis.",
+    "fallbackBadge": "Inglês",
+    "fallbackTooltip": "Sem tradução ainda — exibido em inglês.",
+    "searchPlaceholder": "Buscar modelos…",
+    "kindAll": "Todos",
+    "kindAgents": "agentes",
+    "kindSkills": "habilidades",
+    "emptyMatch": "Nenhum modelo corresponde a estes filtros.",
+    "clearFilters": "Limpar filtros",
+    "preview": "Visualizar",
+    "adopt": "Adotar",
+    "agentKind": "Agente",
+    "skillKind": "Habilidade",
+    "adoptedAgent": "Adotado \"{{name}}\"",
+    "adoptedSkill": "Adotada \"{{name}}\"",
+    "openAgent": "Abrir agente",
+    "openSkill": "Abrir habilidade",
+    "adoptError": "Não foi possível adotar — tente novamente",
+    "drawer": {
+      "adopting": "Adotando…",
+      "systemPrompt": "Prompt de sistema",
+      "defaultsTo": "Padrão:",
+      "suggestedSkills": "Habilidades sugeridas",
+      "body": "Corpo",
+      "copy": "Copiar",
+      "copied": "Copiado",
+      "copyFailed": "Falha ao copiar"
+    }
+  }
+}

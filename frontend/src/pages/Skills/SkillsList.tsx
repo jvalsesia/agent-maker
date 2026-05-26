@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { Copy, Plus, Sparkles, Trash2 } from "lucide-react";
 import { ApiError, type SkillSort } from "@/lib/api";
@@ -17,6 +18,7 @@ import {
 import { DeleteSkillDialog } from "./DeleteSkillDialog";
 
 export function SkillsList() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<SkillSort>("name");
@@ -42,7 +44,7 @@ export function SkillsList() {
   const onClone = async (id: string) => {
     try {
       const r = await clone.mutateAsync({ id });
-      toast.success(`Cloned as ${r.skill.name}`);
+      toast.success(t("skills.list.cloned", { name: r.skill.name }));
     } catch (e) {
       toast.error(e instanceof ApiError ? e.body.error.message : String(e));
     }
@@ -62,7 +64,7 @@ export function SkillsList() {
     if (!pendingDelete) return;
     try {
       await del.mutateAsync(pendingDelete.id);
-      toast.success(`Deleted ${pendingDelete.name}`);
+      toast.success(t("skills.list.deleted", { name: pendingDelete.name }));
       setPendingDelete(null);
     } catch (e) {
       toast.error(e instanceof ApiError ? e.body.error.message : String(e));
@@ -73,46 +75,42 @@ export function SkillsList() {
     <div className="mx-auto max-w-4xl">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Skills</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Reusable instruction bundles. Attach them to any agent to extend behavior.
-          </p>
+          <h1 className="text-2xl font-semibold tracking-tight">{t("skills.list.title")}</h1>
+          <p className="text-sm text-muted-foreground mt-1">{t("skills.list.subtitle")}</p>
         </div>
         <Button onClick={() => navigate("/skills/new")}>
-          <Plus className="mr-1 h-4 w-4" /> New Skill
+          <Plus className="mr-1 h-4 w-4" /> {t("skills.list.newButton")}
         </Button>
       </div>
 
       <div className="mt-6 flex items-center gap-3">
         <Input
-          placeholder="Search by name or description…"
+          placeholder={t("skills.list.searchPlaceholder")}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="max-w-sm"
         />
         <Select value={sort} onValueChange={(v) => setSort(v as SkillSort)}>
           <SelectTrigger className="w-44">
-            <SelectValue placeholder="Sort" />
+            <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="name">Name</SelectItem>
-            <SelectItem value="attached">Attached agents</SelectItem>
-            <SelectItem value="created">Created</SelectItem>
+            <SelectItem value="name">{t("skills.list.sortName")}</SelectItem>
+            <SelectItem value="attached">{t("skills.list.sortAttached")}</SelectItem>
+            <SelectItem value="created">{t("skills.list.sortCreated")}</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
       <div className="mt-4 space-y-2">
         {isLoading ? (
-          <p className="text-sm text-muted-foreground">Loading…</p>
+          <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
         ) : skills.length === 0 ? (
           <div className="rounded-md border border-dashed border-border p-10 text-center">
             <Sparkles className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">
-              No skills yet — create your first one.
-            </p>
+            <p className="text-sm text-muted-foreground">{t("skills.list.empty")}</p>
             <Button className="mt-4" onClick={() => navigate("/skills/new")}>
-              <Plus className="mr-1 h-4 w-4" /> Create skill
+              <Plus className="mr-1 h-4 w-4" /> {t("skills.list.createButton")}
             </Button>
           </div>
         ) : (
@@ -125,8 +123,7 @@ export function SkillsList() {
                 <div className="flex items-center gap-2">
                   <span className="truncate font-medium">{s.name}</span>
                   <span className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
-                    {s.attached_agent_count} agent
-                    {s.attached_agent_count === 1 ? "" : "s"}
+                    {t("skills.list.agentCount", { count: s.attached_agent_count })}
                   </span>
                 </div>
                 <p className="mt-1 truncate text-sm text-muted-foreground">{s.description}</p>
