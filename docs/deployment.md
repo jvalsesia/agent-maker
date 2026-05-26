@@ -6,7 +6,7 @@ React **frontend** — backed by **PostgreSQL with the `pgvector` extension**.
 - `backend/Dockerfile` — multi-stage Rust build → slim Debian runtime.
 - `frontend/Dockerfile` — pnpm build → nginx (proxies `/api` to the backend).
 - `docker-compose.yml` — Postgres + backend + frontend for local/self-hosted runs.
-- `backend/railway.json`, `frontend/railway.json` — Railway service configs.
+- `backend/railway.toml`, `frontend/railway.toml` — Railway service configs.
 
 ## Local / self-hosted (Docker Compose)
 
@@ -38,7 +38,7 @@ the extension binary must be present on the database.
 
 ### 2. Backend service
 
-- **Root directory:** `backend`  (Railway auto-detects `backend/railway.json` → Dockerfile build).
+- **Root directory:** `backend`  (Railway auto-detects `backend/railway.toml` → Dockerfile build).
 - **Variables:**
   - `DATABASE_URL = ${{Postgres.DATABASE_URL}}` (reference the Postgres service)
   - `AGENT_MAKER_FORCE_FILE_STORE = 1`
@@ -46,7 +46,7 @@ the extension binary must be present on the database.
   - `RUST_LOG = agent_maker=info,tower_http=info,sqlx=warn`
 - **PORT:** injected by Railway and honored automatically (`Config` binds `0.0.0.0:$PORT`). Do **not** set `BIND_ADDR`.
 - **Volume:** mount a volume at `/data` so the encrypted secret store survives redeploys.
-- Health check (`/api/health`) is preconfigured in `railway.json`.
+- Health check (`/api/health`) is preconfigured in `railway.toml`.
 
 ### 3. Frontend service
 
