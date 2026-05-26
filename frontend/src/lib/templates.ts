@@ -24,6 +24,8 @@ export interface AgentTemplateSummary {
   category: TemplateCategory;
   preamble: string;
   suggested_skills: string[];
+  /** `true` when shown in English because no translation exists for the locale. */
+  is_fallback: boolean;
 }
 
 export interface SkillTemplateSummary {
@@ -31,6 +33,8 @@ export interface SkillTemplateSummary {
   name: string;
   category: TemplateCategory;
   description: string;
+  /** `true` when shown in English because no translation exists for the locale. */
+  is_fallback: boolean;
 }
 
 export interface TemplatesList {
@@ -82,11 +86,13 @@ async function request<T>(method: string, path: string): Promise<T> {
 }
 
 export const templatesApi = {
-  list: (category?: TemplateCategory) =>
-    request<TemplatesList>(
-      "GET",
-      `/api/templates${category ? `?category=${category}` : ""}`,
-    ),
+  list: (category?: TemplateCategory, locale?: string) => {
+    const params = new URLSearchParams();
+    if (category) params.set("category", category);
+    if (locale) params.set("locale", locale);
+    const qs = params.toString();
+    return request<TemplatesList>("GET", `/api/templates${qs ? `?${qs}` : ""}`);
+  },
   getAgent: (slug: string) =>
     request<{ agent: AgentTemplateDetail }>("GET", `/api/templates/agents/${slug}`),
   getSkill: (slug: string) =>

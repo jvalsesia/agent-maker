@@ -1,0 +1,48 @@
+{
+  "common": {
+    "appName": "agent-maker",
+    "loading": "Loading…",
+    "save": "Save",
+    "saving": "Saving…",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "clone": "Clone",
+    "retry": "Retry",
+    "comingSoon": "Coming soon"
+  },
+  "nav": {
+    "agents": "Agents",
+    "skills": "Skills",
+    "templates": "Templates",
+    "conversations": "Conversations",
+    "settings": "Settings"
+  },
+  "gate": {
+    "dbUnavailableTitle": "Database unavailable",
+    "dbUnavailableBody": "The backend cannot reach Postgres. Start it with:"
+  },
+  "settings": {
+    "appearance": {
+      "title": "Appearance",
+      "description": "Light, dark, or follow the system setting.",
+      "themeChanged": "Theme: {{theme}}",
+      "language": "Language",
+      "languageDescription": "Choose the language for the interface.",
+      "languageChanged": "Language: {{language}}"
+    }
+  },
+  "agents": {
+    "form": {
+      "responseLanguage": "Response language",
+      "responseLanguageHint": "Language the agent replies in.",
+      "responseLanguageAuto": "Automatic (follow my language)",
+      "saved": "Agent saved"
+    }
+  },
+  "templates": {
+    "title": "Templates",
+    "subtitle": "Starter agents and skills. Adopt to create editable copies.",
+    "fallbackBadge": "English",
+    "fallbackTooltip": "No translation yet — shown in English."
+  }
+}

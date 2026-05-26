@@ -1,10 +1,15 @@
+import type { Locale } from "@/i18n/locales/supported";
+
 export type ProviderName = "anthropic" | "openai" | "openai_compat";
+
+/** `auto` follows the active UI locale; a specific locale forces that language. */
+export type ResponseLanguage = "auto" | Locale;
 
 export interface SettingsDto {
   default_provider: ProviderName;
   default_model: Record<ProviderName, string | null>;
   memory_defaults: { recent_n: number; top_k: number };
-  appearance: { theme: "light" | "dark" | "system" };
+  appearance: { theme: "light" | "dark" | "system"; locale: Locale };
   providers: ProviderEntry[];
   key_store_backend: "keyring" | "file";
 }
@@ -63,6 +68,7 @@ export interface Agent {
   has_override_key: boolean;
   recent_n_override: number | null;
   top_k_override: number | null;
+  response_language: ResponseLanguage;
   created_at: string;
   updated_at: string;
   last_used_at: string | null;
@@ -86,6 +92,7 @@ export interface AgentUpsert {
   model: string;
   recent_n_override?: number | null;
   top_k_override?: number | null;
+  response_language?: ResponseLanguage;
 }
 
 export type AgentSort = "name" | "last_used" | "created";
@@ -109,7 +116,7 @@ export const api = {
     default_provider: ProviderName;
     default_model: Partial<Record<ProviderName, string>>;
     memory_defaults: Partial<{ recent_n: number; top_k: number }>;
-    appearance: { theme: "light" | "dark" | "system" };
+    appearance: Partial<{ theme: "light" | "dark" | "system"; locale: Locale }>;
   }>) => request<SettingsDto>("PUT", "/api/settings", patch),
   putKey: (name: ProviderName, key: string, base_url?: string | null) =>
     request<void>("PUT", `/api/settings/providers/${name}/key`, { key, base_url }),
@@ -326,6 +333,8 @@ export interface ChatStartInput {
   retry?: boolean;
   recent_n?: number;
   top_k?: number;
+  /** Active UI locale; used when the agent's response_language is `auto`. */
+  locale?: Locale;
 }
 
 /**

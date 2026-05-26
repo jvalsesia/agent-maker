@@ -1,7 +1,9 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { BookOpen } from "lucide-react";
+import { useLocale } from "@/hooks/useLocale";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/cn";
@@ -26,12 +28,14 @@ type Kind = "all" | "agent" | "skill";
 
 export function TemplatesGallery() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
+  const locale = useLocale();
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<TemplateCategory | "all">("all");
   const [kind, setKind] = useState<Kind>("all");
   const [preview, setPreview] = useState<PreviewTarget | null>(null);
 
-  const { data, isLoading } = useTemplates();
+  const { data, isLoading } = useTemplates(undefined, locale);
   const adoptAgent = useAdoptAgent();
   const adoptSkill = useAdoptSkill();
   const adopting = adoptAgent.isPending || adoptSkill.isPending;
@@ -99,9 +103,9 @@ export function TemplatesGallery() {
       <div className="sticky top-0 z-10 -mx-6 bg-background/95 px-6 pb-4 pt-1 backdrop-blur">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Templates</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">{t("templates.title")}</h1>
             <p className="text-sm text-muted-foreground mt-1">
-              Starter agents and skills. Adopt to create editable copies.
+              {t("templates.subtitle")}
             </p>
           </div>
         </div>
@@ -224,6 +228,7 @@ function CardShell({
   category,
   title,
   description,
+  isFallback,
   onPreview,
   onAdopt,
 }: {
@@ -231,9 +236,11 @@ function CardShell({
   category: string;
   title: string;
   description: string;
+  isFallback?: boolean;
   onPreview: () => void;
   onAdopt: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="flex flex-col rounded-md border border-border bg-card/60 p-4">
       <div className="mb-1 flex items-center gap-2 text-xs">
@@ -243,6 +250,14 @@ function CardShell({
         <span className="rounded bg-muted px-1.5 py-0.5 uppercase tracking-wide text-muted-foreground">
           {category}
         </span>
+        {isFallback && (
+          <span
+            className="rounded bg-muted px-1.5 py-0.5 uppercase tracking-wide text-muted-foreground"
+            title={t("templates.fallbackTooltip")}
+          >
+            {t("templates.fallbackBadge")}
+          </span>
+        )}
       </div>
       <div className="font-medium">{title}</div>
       <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{description}</p>
@@ -273,6 +288,7 @@ function AgentCard({
       category={agent.category}
       title={agent.name}
       description={agent.preamble}
+      isFallback={agent.is_fallback}
       onPreview={onPreview}
       onAdopt={onAdopt}
     />
@@ -294,6 +310,7 @@ function SkillCard({
       category={skill.category}
       title={skill.name}
       description={skill.description}
+      isFallback={skill.is_fallback}
       onPreview={onPreview}
       onAdopt={onAdopt}
     />

@@ -1,0 +1,48 @@
+{
+  "common": {
+    "appName": "agent-maker",
+    "loading": "Carregando…",
+    "save": "Salvar",
+    "saving": "Salvando…",
+    "cancel": "Cancelar",
+    "delete": "Excluir",
+    "clone": "Clonar",
+    "retry": "Tentar novamente",
+    "comingSoon": "Em breve"
+  },
+  "nav": {
+    "agents": "Agentes",
+    "skills": "Habilidades",
+    "templates": "Modelos",
+    "conversations": "Conversas",
+    "settings": "Configurações"
+  },
+  "gate": {
+    "dbUnavailableTitle": "Banco de dados indisponível",
+    "dbUnavailableBody": "O backend não consegue acessar o Postgres. Inicie-o com:"
+  },
+  "settings": {
+    "appearance": {
+      "title": "Aparência",
+      "description": "Claro, escuro ou seguir a configuração do sistema.",
+      "themeChanged": "Tema: {{theme}}",
+      "language": "Idioma",
+      "languageDescription": "Escolha o idioma da interface.",
+      "languageChanged": "Idioma: {{language}}"
+    }
+  },
+  "agents": {
+    "form": {
+      "responseLanguage": "Idioma das respostas",
+      "responseLanguageHint": "Idioma em que o agente responde.",
+      "responseLanguageAuto": "Automático (seguir meu idioma)",
+      "saved": "Agente salvo"
+    }
+  },
+  "templates": {
+    "title": "Modelos",
+    "subtitle": "Agentes e habilidades iniciais. Adote para criar cópias editáveis.",
+    "fallbackBadge": "Inglês",
+    "fallbackTooltip": "Sem tradução ainda — exibido em inglês."
+  }
+}

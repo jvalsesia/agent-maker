@@ -1,29 +1,31 @@
 import { NavLink } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Bot, Sparkles, BookOpen, MessageSquare, Settings } from "lucide-react";
 import { cn } from "@/lib/cn";
 
 const items = [
-  { to: "/agents", label: "Agents", icon: Bot, disabled: false },
-  { to: "/skills", label: "Skills", icon: Sparkles, disabled: false },
-  { to: "/templates", label: "Templates", icon: BookOpen, disabled: false },
-  { to: "/conversations", label: "Conversations", icon: MessageSquare, disabled: true },
-  { to: "/settings", label: "Settings", icon: Settings, disabled: false },
-];
+  { to: "/agents", labelKey: "nav.agents", icon: Bot, disabled: false },
+  { to: "/skills", labelKey: "nav.skills", icon: Sparkles, disabled: false },
+  { to: "/templates", labelKey: "nav.templates", icon: BookOpen, disabled: false },
+  { to: "/conversations", labelKey: "nav.conversations", icon: MessageSquare, disabled: true },
+  { to: "/settings", labelKey: "nav.settings", icon: Settings, disabled: false },
+] as const;
 
 export function NavSidebar() {
+  const { t } = useTranslation();
   return (
     <aside className="w-56 shrink-0 border-r border-border bg-card/40 p-3">
-      <div className="px-2 py-3 text-sm font-semibold tracking-tight">agent-maker</div>
+      <div className="px-2 py-3 text-sm font-semibold tracking-tight">{t("common.appName")}</div>
       <nav className="mt-2 flex flex-col gap-1">
-        {items.map(({ to, label, icon: Icon, disabled }) =>
+        {items.map(({ to, labelKey, icon: Icon, disabled }) =>
           disabled ? (
             <span
               key={to}
               className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground/60 cursor-not-allowed"
-              title="Coming soon"
+              title={t("common.comingSoon")}
             >
               <Icon className="h-4 w-4" />
-              {label}
+              {t(labelKey)}
             </span>
           ) : (
             <NavLink
@@ -39,7 +41,7 @@ export function NavSidebar() {
               }
             >
               <Icon className="h-4 w-4" />
-              {label}
+              {t(labelKey)}
             </NavLink>
           ),
         )}

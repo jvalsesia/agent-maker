@@ -44,7 +44,12 @@ describe("useChat", () => {
 
     const [url, init] = fetchMock.mock.calls[0];
     expect(url).toBe("/api/conversations/c1/chat");
-    expect(JSON.parse((init as RequestInit).body as string)).toEqual({ content: "hi there" });
+    // The active UI locale rides along so the backend can resolve an `auto`
+    // agent's response language; default runtime locale is English.
+    expect(JSON.parse((init as RequestInit).body as string)).toEqual({
+      content: "hi there",
+      locale: "en",
+    });
   });
 
   it("captures a mid-stream provider error", async () => {

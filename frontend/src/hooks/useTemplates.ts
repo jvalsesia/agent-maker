@@ -1,13 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { templatesApi, type TemplateCategory } from "@/lib/templates";
 
-export const templatesKey = (category?: TemplateCategory) =>
-  ["templates", category ?? "all"] as const;
+export const templatesKey = (category?: TemplateCategory, locale?: string) =>
+  ["templates", category ?? "all", locale ?? "en"] as const;
 
-export function useTemplates(category?: TemplateCategory) {
+export function useTemplates(category?: TemplateCategory, locale?: string) {
   return useQuery({
-    queryKey: templatesKey(category),
-    queryFn: () => templatesApi.list(category),
+    queryKey: templatesKey(category, locale),
+    queryFn: () => templatesApi.list(category, locale),
   });
 }
 

@@ -1,9 +1,10 @@
 import { AlertTriangle } from "lucide-react";
 import { useComposePreview } from "@/hooks/useAgentSkills";
-
-const formatNumber = (n: number) => n.toLocaleString();
+import { useLocale } from "@/hooks/useLocale";
+import { formatNumber } from "@/lib/format";
 
 export function ComposedPromptIndicator({ agentId }: { agentId: string }) {
+  const locale = useLocale();
   const { data, isLoading, isError } = useComposePreview(agentId);
 
   if (isLoading) {
@@ -16,8 +17,9 @@ export function ComposedPromptIndicator({ agentId }: { agentId: string }) {
   }
 
   const pct = Math.round(data.fraction * 100);
-  const summary = `Composed prompt: ${formatNumber(data.length_chars)} / ${formatNumber(
+  const summary = `Composed prompt: ${formatNumber(data.length_chars, locale)} / ${formatNumber(
     data.model_context_chars,
+    locale,
   )} chars (${pct}%)`;
 
   if (data.fraction >= 0.95) {

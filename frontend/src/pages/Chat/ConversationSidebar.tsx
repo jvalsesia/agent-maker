@@ -12,6 +12,9 @@ import {
   useRenameConversation,
 } from "@/hooks/useConversations";
 import { useClearMemory } from "@/hooks/useMemory";
+import { useLocale } from "@/hooks/useLocale";
+import { formatDate } from "@/lib/format";
+import { type Locale } from "@/i18n/locales/supported";
 import { DeleteConversationDialog } from "./DeleteConversationDialog";
 import { ClearMemoryDialog } from "./ClearMemoryDialog";
 
@@ -23,6 +26,7 @@ interface Props {
 }
 
 export function ConversationSidebar({ agentId, conversations, activeId, onSelect }: Props) {
+  const locale = useLocale();
   const create = useCreateConversation(agentId);
   const rename = useRenameConversation(agentId);
   const del = useDeleteConversation(agentId);
@@ -136,7 +140,7 @@ export function ConversationSidebar({ agentId, conversations, activeId, onSelect
                   >
                     <div className="truncate font-medium">{c.title}</div>
                     <div className="truncate text-xs text-muted-foreground">
-                      {c.message_count} msg · {formatRelative(c.last_activity_at)}
+                      {c.message_count} msg · {formatRelative(c.last_activity_at, locale)}
                     </div>
                   </button>
                   <div className="flex shrink-0 items-center gap-0.5 opacity-0 group-hover:opacity-100">
@@ -224,7 +228,7 @@ function RenameRow({
   );
 }
 
-function formatRelative(iso: string): string {
+function formatRelative(iso: string, locale: Locale): string {
   const t = new Date(iso).getTime();
   const diff = Date.now() - t;
   const sec = Math.floor(diff / 1000);
@@ -235,5 +239,5 @@ function formatRelative(iso: string): string {
   if (hr < 24) return `${hr}h ago`;
   const day = Math.floor(hr / 24);
   if (day < 7) return `${day}d ago`;
-  return new Date(iso).toLocaleDateString();
+  return formatDate(iso, locale);
 }

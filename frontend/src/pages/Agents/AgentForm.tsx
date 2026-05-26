@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { AlertTriangle, ChevronDown, ChevronRight, Copy, Trash2 } from "lucide-react";
 import {
@@ -7,7 +8,9 @@ import {
   type AgentUpsert,
   type AgentWarning,
   type ProviderName,
+  type ResponseLanguage,
 } from "@/lib/api";
+import { SUPPORTED_LOCALES } from "@/i18n/locales/supported";
 import {
   useAgent,
   useAgentModels,
@@ -44,6 +47,7 @@ interface FieldErrors {
 }
 
 export function AgentForm() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const editing = !!id;
   const navigate = useNavigate();
@@ -58,6 +62,7 @@ export function AgentForm() {
   const [model, setModel] = useState("");
   const [recentN, setRecentN] = useState<string>("");
   const [topK, setTopK] = useState<string>("");
+  const [responseLanguage, setResponseLanguage] = useState<ResponseLanguage>("auto");
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [keyInput, setKeyInput] = useState("");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
@@ -74,6 +79,7 @@ export function AgentForm() {
     setModel(a.model);
     setRecentN(a.recent_n_override?.toString() ?? "");
     setTopK(a.top_k_override?.toString() ?? "");
+    setResponseLanguage(a.response_language ?? "auto");
   }, [existing.data?.agent]);
 
   const modelsQuery = useAgentModels(provider);
@@ -103,6 +109,7 @@ export function AgentForm() {
     model,
     recent_n_override: recentN ? Number(recentN) : null,
     top_k_override: topK ? Number(topK) : null,
+    response_language: responseLanguage,
   });
 
   const handleApiError = (e: unknown) => {
@@ -122,7 +129,7 @@ export function AgentForm() {
         ? await update.mutateAsync(body)
         : await create.mutateAsync(body);
       setWarnings(resp.warnings);
-      toast.success(`Agent saved`);
+      toast.success(t("agents.form.saved"));
       if (thenChat) {
         // F06/F07 will turn this into a fresh conversation. For now jump to the detail page.
         navigate(`/agents/${resp.agent.id}`);
@@ -307,6 +314,28 @@ export function AgentForm() {
             />
           </Field>
         </div>
+
+        <Field
+          label={t("agents.form.responseLanguage")}
+          hint={t("agents.form.responseLanguageHint")}
+        >
+          <Select
+            value={responseLanguage}
+            onValueChange={(v) => setResponseLanguage(v as ResponseLanguage)}
+          >
+            <SelectTrigger className="max-w-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="auto">{t("agents.form.responseLanguageAuto")}</SelectItem>
+              {SUPPORTED_LOCALES.map((l) => (
+                <SelectItem key={l.code} value={l.code}>
+                  {l.nativeName}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Field>
 
         {editing && id && <AgentSkillsPanel agentId={id} />}
 
