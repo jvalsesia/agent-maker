@@ -1,0 +1,44 @@
+# Rendered by docker-entrypoint.frontend.sh via envsubst.
+# Substituted vars: ${PORT} ${BACKEND_URL}
+
+server {
+    listen ${PORT};
+    server_name _;
+
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # Lightweight health endpoint for container/platform health checks.
+    location = /healthz {
+        access_log off;
+        add_header Content-Type text/plain;
+        return 200 "ok\n";
+    }
+
+    # REST API + SSE chat stream -> backend. The chat endpoint
+    # (/api/conversations/:id/chat) returns text/event-stream, so buffering is
+    # off and the read timeout is high to keep the stream open.
+    location /api/ {
+        proxy_pass ${BACKEND_URL};
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header Connection "";
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_buffering off;
+        proxy_cache off;
+        proxy_read_timeout 3600s;
+    }
+
+    # SPA fallback: serve static assets, otherwise index.html for client routes.
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Long-cache hashed build assets.
+    location /assets/ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+}
