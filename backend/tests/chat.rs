@@ -87,11 +87,10 @@ impl LlmProvider for StubProvider {
         let items = self.items.clone();
         let gate = self.gate.clone();
         let stream = futures::stream::unfold((0usize, items, gate), |(idx, items, gate)| async move {
-            if idx == 0 {
-                if let Some(g) = &gate {
+            if idx == 0
+                && let Some(g) = &gate {
                     g.notified().await;
                 }
-            }
             if idx >= items.len() {
                 return None;
             }
@@ -132,7 +131,7 @@ impl EmbeddingProvider for StubEmbedder {
 fn make_store() -> Arc<AnyStore> {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.keep();
-    Arc::new(AnyStore::File(FileStore::open_or_create(&path).unwrap()))
+    Arc::new(AnyStore::File(Box::new(FileStore::open_or_create(&path).unwrap())))
 }
 
 fn app(pool: PgPool, provider: StubProvider, fail_embed: bool) -> axum::Router {

@@ -26,7 +26,7 @@ impl TemplatesService {
     pub fn list(&self, category: Option<Category>, locale: &str) -> TemplatesList {
         let agents = STARTER_AGENTS
             .iter()
-            .filter(|a| category.map_or(true, |c| a.category == c))
+            .filter(|a| category.is_none_or(|c| a.category == c))
             .map(|a| {
                 let variant = catalog::agent_variant(a.slug, locale);
                 AgentTemplateSummary {
@@ -41,7 +41,7 @@ impl TemplatesService {
             .collect();
         let skills = STARTER_SKILLS
             .iter()
-            .filter(|s| category.map_or(true, |c| s.category == c))
+            .filter(|s| category.is_none_or(|c| s.category == c))
             .map(|s| {
                 let variant = catalog::skill_variant(s.slug, locale);
                 SkillTemplateSummary {
@@ -220,12 +220,12 @@ async fn unique_name(
         return Ok(base.to_string());
     }
     let with_suffix = format!("{base}{SUFFIX}");
-    if !rows.iter().any(|n| *n == with_suffix) {
+    if !rows.contains(&with_suffix) {
         return Ok(with_suffix);
     }
     for n in 2..1000 {
         let candidate = format!("{base}{SUFFIX} ({n})");
-        if !rows.iter().any(|x| *x == candidate) {
+        if !rows.contains(&candidate) {
             return Ok(candidate);
         }
     }

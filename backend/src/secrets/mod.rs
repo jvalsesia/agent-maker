@@ -26,7 +26,7 @@ pub trait SecretStore: Send + Sync {
 
 pub enum AnyStore {
     Keyring(KeyringStore),
-    File(FileStore),
+    File(Box<FileStore>),
 }
 
 #[async_trait]
@@ -71,7 +71,9 @@ impl SecretStore for AnyStore {
 pub fn auto(home: &Path) -> AnyStore {
     if std::env::var("AGENT_MAKER_FORCE_FILE_STORE").ok().as_deref() == Some("1") {
         tracing::info!("secret store: file (forced via AGENT_MAKER_FORCE_FILE_STORE)");
-        return AnyStore::File(FileStore::open_or_create(home).expect("init file secret store"));
+        return AnyStore::File(Box::new(
+            FileStore::open_or_create(home).expect("init file secret store"),
+        ));
     }
     match KeyringStore::new() {
         Ok(k) => {
@@ -80,7 +82,9 @@ pub fn auto(home: &Path) -> AnyStore {
         }
         Err(e) => {
             tracing::warn!(error = %e, "OS keychain unavailable, falling back to file store");
-            AnyStore::File(FileStore::open_or_create(home).expect("init file secret store"))
+            AnyStore::File(Box::new(
+                FileStore::open_or_create(home).expect("init file secret store"),
+            ))
         }
     }
 }

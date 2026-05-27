@@ -224,13 +224,12 @@ impl ChatService {
     ) -> AppResult<(String, Uuid)> {
         if req.retry {
             // Drop a trailing assistant turn so the user message is last again.
-            if let Some(last) = self.conversations.last_message(conversation_id).await? {
-                if last.role == "assistant"
+            if let Some(last) = self.conversations.last_message(conversation_id).await?
+                && last.role == "assistant"
                     && (last.status == "error" || last.status == "stopped")
                 {
                     self.conversations.delete_message(last.id).await?;
                 }
-            }
             match self.conversations.last_message(conversation_id).await? {
                 Some(m) if m.role == "user" => Ok((m.content, m.id)),
                 _ => Err(AppError::validation(

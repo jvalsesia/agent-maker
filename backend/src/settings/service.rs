@@ -75,48 +75,45 @@ impl SettingsService {
     }
 
     pub async fn update(&self, patch: UpdateSettings) -> AppResult<SettingsDto> {
-        if let Some(ref p) = patch.default_provider {
-            if p.parse::<ProviderName>().is_err() {
+        if let Some(ref p) = patch.default_provider
+            && p.parse::<ProviderName>().is_err() {
                 return Err(AppError::validation_field(
                     "default_provider",
                     "must be one of anthropic, openai, openai_compat",
                 ));
             }
-        }
         if let Some(ref m) = patch.memory_defaults {
-            if let Some(n) = m.recent_n {
-                if !(4..=30).contains(&n) {
+            if let Some(n) = m.recent_n
+                && !(4..=30).contains(&n) {
                     return Err(AppError::validation_field(
                         "memory_defaults.recent_n",
                         "must be in [4,30]",
                     ));
                 }
-            }
-            if let Some(k) = m.top_k {
-                if !(0..=10).contains(&k) {
+            if let Some(k) = m.top_k
+                && !(0..=10).contains(&k) {
                     return Err(AppError::validation_field(
                         "memory_defaults.top_k",
                         "must be in [0,10]",
                     ));
                 }
-            }
         }
         if let Some(ref a) = patch.appearance {
-            if let Some(ref t) = a.theme {
-                if !matches!(t.as_str(), "light" | "dark" | "system") {
-                    return Err(AppError::validation_field(
-                        "appearance.theme",
-                        "must be light, dark, or system",
-                    ));
-                }
+            if let Some(ref t) = a.theme
+                && !matches!(t.as_str(), "light" | "dark" | "system")
+            {
+                return Err(AppError::validation_field(
+                    "appearance.theme",
+                    "must be light, dark, or system",
+                ));
             }
-            if let Some(ref l) = a.locale {
-                if !crate::i18n::is_supported(l) {
-                    return Err(AppError::validation_field(
-                        "appearance.locale",
-                        "must be one of en, pt-BR",
-                    ));
-                }
+            if let Some(ref l) = a.locale
+                && !crate::i18n::is_supported(l)
+            {
+                return Err(AppError::validation_field(
+                    "appearance.locale",
+                    "must be one of en, pt-BR",
+                ));
             }
         }
 
@@ -248,9 +245,9 @@ mod tests {
 
     async fn make_service() -> SettingsService {
         let pool = sqlx::PgPool::connect_lazy("postgres://x:y@127.0.0.1/none").unwrap();
-        let store = Arc::new(crate::secrets::AnyStore::File(
+        let store = Arc::new(crate::secrets::AnyStore::File(Box::new(
             crate::secrets::FileStore::open_or_create(tempfile::tempdir().unwrap().path()).unwrap(),
-        ));
+        )));
         SettingsService::new(pool, store)
     }
 

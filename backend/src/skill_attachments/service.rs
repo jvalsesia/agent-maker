@@ -229,19 +229,12 @@ impl AttachmentsService {
 /// The conversion factor is a deliberate conservative approximation of ~4 chars per
 /// token. F07 will replace this with a real tokenizer; for F04 it only drives a UI
 /// warning chip, never blocks a save.
-pub fn model_context_chars(provider: &str, model: &str) -> i64 {
+pub fn model_context_chars(provider: &str, _model: &str) -> i64 {
     let p = ProviderName::from_str(provider).ok();
     match p {
         Some(ProviderName::Anthropic) => 200_000 * 4,
-        Some(ProviderName::OpenAi) => {
-            // Conservative default for the gpt-4o family.
-            let lower = model.to_ascii_lowercase();
-            if lower.starts_with("o1") || lower.contains("o1-mini") {
-                128_000 * 4
-            } else {
-                128_000 * 4
-            }
-        }
+        // Conservative default covering the gpt-4o and o1 families.
+        Some(ProviderName::OpenAi) => 128_000 * 4,
         Some(ProviderName::OpenAiCompat) => 32_000 * 4,
         None => 32_000 * 4,
     }
