@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Guidance for Claude Code when working in this repository.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## What this is
 
@@ -57,6 +57,8 @@ docker compose up -d                     # Postgres + pgvector on 127.0.0.1:5432
 cd backend
 cargo run                                # serves on 127.0.0.1:8787 (BIND_ADDR)
 cargo test
+cargo test <name>                        # single test (substring match on test fn)
+cargo test --test <file>                 # one integration test file in tests/
 cargo clippy --all-targets
 
 # Frontend
@@ -64,6 +66,7 @@ cd frontend
 pnpm install
 pnpm dev                                 # Vite dev server
 pnpm test                                # vitest
+pnpm vitest run -t "<name>"              # single test by name; or: pnpm test <path>
 pnpm typecheck                           # tsc --noEmit
 pnpm build                               # typecheck + vite build
 
