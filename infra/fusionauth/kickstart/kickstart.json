@@ -1,0 +1,110 @@
+{
+  "variables": {
+    "adminEmail": "admin@agent-maker.local",
+    "adminPassword": "ChangeMeNow!1",
+    "adminUserId": "00000000-0000-0000-0000-00000000a001",
+    "applicationId": "00000000-0000-0000-0000-0000000a9911",
+    "clientSecret": "agent-maker-local-dev-secret-do-not-use-in-prod",
+    "apiKeyId": "00000000-0000-0000-0000-000000000a91",
+    "apiKey": "agent-maker-local-dev-api-key-do-not-use-in-prod",
+    "signingKeyId": "00000000-0000-0000-0000-000000005169",
+    "adminRoleId": "00000000-0000-0000-0000-0000000ad711",
+    "tenantId": "00000000-0000-0000-0000-000000003efa",
+    "issuer": "agent-maker"
+  },
+  "apiKeys": [
+    {
+      "id": "#{apiKeyId}",
+      "key": "#{apiKey}",
+      "description": "agent-maker local-dev bootstrap key"
+    }
+  ],
+  "requests": [
+    {
+      "method": "PATCH",
+      "url": "/api/tenant/#{tenantId}",
+      "tenantId": "#{tenantId}",
+      "body": {
+        "tenant": {
+          "name": "agent-maker",
+          "issuer": "#{issuer}",
+          "jwtConfiguration": {
+            "accessTokenKeyId": "#{signingKeyId}",
+            "idTokenKeyId": "#{signingKeyId}",
+            "refreshTokenTimeToLiveInMinutes": 43200,
+            "timeToLiveInSeconds": 3600
+          }
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "url": "/api/key/generate/#{signingKeyId}",
+      "tenantId": "#{tenantId}",
+      "body": {
+        "key": {
+          "algorithm": "RS256",
+          "name": "agent-maker access token signing key",
+          "length": 2048
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "url": "/api/application/#{applicationId}",
+      "tenantId": "#{tenantId}",
+      "body": {
+        "application": {
+          "name": "agent-maker",
+          "roles": [
+            {
+              "id": "#{adminRoleId}",
+              "name": "admin",
+              "description": "Workspace administrator",
+              "isDefault": false,
+              "isSuperRole": false
+            }
+          ],
+          "jwtConfiguration": {
+            "enabled": true,
+            "accessTokenKeyId": "#{signingKeyId}",
+            "idTokenKeyId": "#{signingKeyId}",
+            "refreshTokenTimeToLiveInMinutes": 43200,
+            "timeToLiveInSeconds": 3600
+          },
+          "loginConfiguration": {
+            "allowTokenRefresh": true,
+            "generateRefreshTokens": true,
+            "requireAuthentication": true
+          },
+          "oauthConfiguration": {
+            "authorizedRedirectURLs": [],
+            "clientSecret": "#{clientSecret}",
+            "enabledGrants": ["password", "refresh_token"],
+            "generateRefreshTokens": true,
+            "logoutBehavior": "AllApplications",
+            "requireClientAuthentication": true
+          }
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "url": "/api/user/registration/#{adminUserId}",
+      "tenantId": "#{tenantId}",
+      "body": {
+        "registration": {
+          "applicationId": "#{applicationId}",
+          "roles": ["admin"]
+        },
+        "user": {
+          "email": "#{adminEmail}",
+          "password": "#{adminPassword}",
+          "active": true
+        },
+        "skipRegistrationVerification": true,
+        "skipVerification": true
+      }
+    }
+  ]
+}
