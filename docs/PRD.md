@@ -2,7 +2,7 @@
 
 ## 1. Executive Summary
 
-agent-maker is a team-deployable web application that lets a small group build, customize, and chat with a shared roster of AI agents — without writing code. Each agent is a persona defined by a name, a preamble, and a system prompt, and lives in its own dedicated chat surface. Reusable Skills — small instruction bundles with a name, description, and body — can be attached to any number of agents, snapping in like LEGO blocks to extend behavior across a user's whole agent roster.
+agent-maker is a local-first web application that lets anyone build, customize, and chat with their own AI agents — without writing code. Each agent is a persona defined by a name, a preamble, and a system prompt, and lives in its own dedicated chat surface. Reusable Skills — small instruction bundles with a name, description, and body — can be attached to any number of agents, snapping in like LEGO blocks to extend behavior across a user's whole agent roster.
 
 The product is aimed at non-technical knowledge workers who want sophisticated, persistent AI teammates tailored to their workflows, while still exposing advanced controls (raw prompt editing, model selection, per-agent API keys) for power users who want full control. It works against multiple LLM providers (Anthropic, OpenAI, and local models such as Ollama) through a single abstraction, so the user picks the engine that fits each agent.
 
@@ -48,7 +48,7 @@ agent-maker turns the LEGO metaphor into a real product. Personas (Agents) and r
 ### Behavioral Profile
 
 - Uses LLMs daily or near-daily and has hit the limits of generic chat tools
-- Cares about privacy and cost — runs the app on infrastructure they control and supplies their own API keys (BYOK), shared across the team
+- Cares about privacy and cost — prefers running locally and supplying their own API keys (BYOK)
 - Iterates on prompts over time and wants their refinements to compound rather than getting lost
 - Expects modern web-app UX: fast, streaming responses, keyboard-friendly, no setup ceremony
 
@@ -74,7 +74,7 @@ agent-maker turns the LEGO metaphor into a real product. Personas (Agents) and r
 ## 5. User Stories
 
 ### F01. App Foundation and Settings
-- As a user, I want to sign in with my email and password and reach the workspace immediately, so that I can start working without setup ceremony
+- As a user, I want to open the app in my browser and see it ready to use without account creation, so that I can start immediately
 - As a user, I want to configure default LLM providers and paste my API keys in a settings page, so that all new agents work without per-agent setup
 - As a user, I want my agents, skills, and chats persisted locally between sessions, so that I never lose my work
 - As a power user, I want to choose between multiple installed LLM providers (Anthropic, OpenAI, local), so that I can pick the right engine for each agent
@@ -127,14 +127,6 @@ agent-maker turns the LEGO metaphor into a real product. Personas (Agents) and r
 - As a new user, I want the starter template library to offer agents and skills authored in my language, so that the examples are immediately usable
 - As a user, I want my agents to reply in my chosen language by default, so that I don't have to instruct each agent about language separately
 - As a power user, I want to override the response language per agent, so that I can keep a language-specific agent regardless of my UI locale
-
-### F10. Access and Identity
-- As a user, I want to sign in with email and password to reach the shared workspace, so that only invited teammates can access our agents
-- As a user, I want my session to persist across browser restarts so that I don't re-enter my password every day
-- As a user, I want to see my email in the global navigation and a clearly visible "Sign out" control, so that I know which account I'm using and can end my session on a shared device
-- As an admin, I want to invite a new teammate by creating their account, so that they can sign in and join the shared workspace
-- As an admin, I want to deactivate a teammate's account, so that they immediately lose access when they leave
-- As the system, I want to validate every protected API request against a session token, so that unauthenticated traffic cannot reach workspace data
 
 ## 6. Functionalities
 
@@ -394,54 +386,12 @@ agent-maker turns the LEGO metaphor into a real product. Personas (Agents) and r
 - Unsupported persisted/browser locale: silently maps to the nearest supported locale, defaulting to `en`
 - Locale setting save fails: toast with retry; the previously active locale remains in effect
 
-### F10. Access and Identity
-
-**Provides:**
-- Authenticated session context (subject id, email, roles) and a request-gating middleware (used by F02, F03, F04, F05, F06, F07, F08, F09)
-
-**Capabilities:**
-- IAM provider: FusionAuth, deployed as a private internal service on Railway with no public domain; reachable only from the agent-maker backend over Railway's private network
-- Single shared workspace: all authenticated users see and edit the same agents, skills, attachments, conversations, templates, memory, and settings — no per-user data scoping
-- Auth flow: custom React login form posts email + password to backend `/auth/login`; backend calls FusionAuth `/api/login` server-to-server over the private network; the browser never contacts FusionAuth directly
-- Credentials: email + password only in v1
-- User provisioning: admin-only via FusionAuth admin UI or API; no self-signup; no public registration page
-- Roles: a single `admin` role defined in the FusionAuth application; carried as a JWT claim; backend authorizes admin-only operations on the claim
-- Token lifetimes: access token 1 hour, refresh token 30 days; refresh rotates on use; sessions persist across browser restarts via the refresh token stored in an httpOnly secure cookie set by the backend
-- Backend middleware: every non-`/auth/*`, non-health route requires a valid access token; expired access tokens trigger silent refresh via `/auth/refresh`; missing/invalid tokens return 401
-- Frontend: a route guard redirects unauthenticated users to `/auth/login`; the global navigation shows the signed-in user's email and a "Sign out" control that clears cookies and revokes the refresh token via the backend
-- Local development: bundled `docker-compose.yml` adds a `fusionauth` service (image `fusionauth/fusionauth-app:latest`) and a dedicated `fusionauth-db` Postgres 16 service (separate from the app's `agent_maker` database); a committed `infra/fusionauth/kickstart/kickstart.json` seeds tenant, application/OAuth client, API key, JWT signing keys, the `admin` role, and a test admin user on first boot
-- Dev escape hatch: `DISABLE_AUTH=1` env flag (only honored when `RUST_ENV=development`) bypasses the auth middleware and injects a fake subject, so feature work doesn't pay FusionAuth's ~30–60s boot cost
-- Cutover: F10 is a breaking change. The pre-F10 database is wiped on first launch of the F10 release; no migration of existing rows is performed.
-
-**Experience:**
-- First visit to any protected route redirects to `/auth/login`, which renders an in-app React form (email + password, "Sign in" button) styled and translated consistently with the rest of the app via i18next
-- Successful login lands the user on the originally requested route, or on the agents list if none
-- Session refresh is silent; users only re-enter credentials when both tokens have expired or after explicit sign-out
-- The global navigation shows the signed-in user's email and a "Sign out" action
-- Admin-only actions (user management deep links to the FusionAuth admin UI) are surfaced only when the `admin` role is present in the session
-
-**Error Handling:**
-- Invalid credentials: the React login form shows an inline "Email or password is incorrect" message and clears the password field; no information leakage about which field was wrong
-- Token refresh fails (refresh expired or revoked): user is redirected to `/auth/login` with a one-line "Your session expired" notice; any unsent composer draft is preserved client-side
-- FusionAuth unreachable from backend: `/auth/login` returns 503 with a clear "Authentication service unavailable — retry shortly" message; protected routes return 401
-- Backend missing or misconfigured FusionAuth credentials at boot: backend refuses to start and logs the specific missing setting
-- 401 on a protected API call: frontend attempts one silent refresh; on failure, redirects to login
-
 ## 7. Out of Scope
 
-**Sharing and collaboration**
-- No per-user data scoping — the workspace is shared across all authenticated team members
+**Multi-user, sharing, and collaboration**
+- No user accounts, no authentication, no permissions
 - No sharing or publishing agents/skills to other users or to a public directory
 - No real-time co-editing of agents or skills
-
-**Identity features deferred beyond F10**
-- No social or SSO providers (Google, GitHub, SAML, OIDC federation)
-- No magic-link or passwordless login
-- No machine-to-machine API tokens or CLI auth
-- No self-signup or public registration; users are admin-invited only
-- No self-serve password reset — admins reset passwords manually via the FusionAuth admin UI
-- No per-user API keys, per-user memory, or per-user agents (shared workspace model)
-- No audit log (who-did-what tracking) in v1
 
 **Mobile and alternative form factors**
 - No native iOS or Android apps in v1
@@ -465,7 +415,7 @@ agent-maker turns the LEGO metaphor into a real product. Personas (Agents) and r
 
 **Operational features**
 - No cloud sync or backup
-- No multi-workspace or multi-tenant concept (the deployment is a single shared workspace)
+- No team workspaces or organization concept
 - No export/import of agents/skills (planned beyond v1)
 
 ## 8. Dependency Graph
@@ -473,20 +423,18 @@ agent-maker turns the LEGO metaphor into a real product. Personas (Agents) and r
 | # | Feature | Priority | Dependencies |
 |---|---------|----------|--------------|
 | F01 | App Foundation and Settings | 1 | None |
-| F10 | Access and Identity | 1 | F01 |
-| F02 | Agent Management | 1 | F01, F10 |
-| F03 | Skill Management | 1 | F01, F10 |
-| F05 | Starter Template Library | 2 | F01, F10 |
-| F04 | Skill Attachment to Agents | 1 | F02, F03, F10 |
-| F06 | Conversation Management | 1 | F02, F10 |
-| F08 | Memory System | 1 | F06, F10 |
-| F07 | Chat Runtime | 1 | F02, F04, F06, F08, F10 |
-| F09 | Internationalization (i18n) | 2 | F01, F02, F05, F07, F10 |
+| F02 | Agent Management | 1 | F01 |
+| F03 | Skill Management | 1 | F01 |
+| F05 | Starter Template Library | 2 | F01 |
+| F04 | Skill Attachment to Agents | 1 | F02, F03 |
+| F06 | Conversation Management | 1 | F02 |
+| F08 | Memory System | 1 | F06 |
+| F07 | Chat Runtime | 1 | F02, F04, F06, F08 |
+| F09 | Internationalization (i18n) | 2 | F01, F02, F05, F07 |
 
 ### Foundation Features
 These features set up shared project infrastructure. In a greenfield project they must be implemented sequentially before or alongside any feature that depends on them:
 - **F01 App Foundation and Settings** — scaffolds the web app (frontend framework, routing, global layout, theme), provisions PostgreSQL with pgvector via a bundled `docker-compose.yml`, runs database migrations, wires the multi-provider LLM abstraction, and provides the encrypted settings/key store
-- **F10 Access and Identity** — wires the FusionAuth integration, the backend `/auth/*` routes, the auth middleware on every protected route, the React route guard, and the docker-compose `fusionauth` + `fusionauth-db` services that every subsequent protected feature implicitly relies on
 
 ### Execution Waves
 Features within the same wave can be built in parallel. A wave starts only after every feature in earlier waves is complete.
@@ -494,12 +442,11 @@ Features within the same wave can be built in parallel. A wave starts only after
 **Note:** Foundation features (see "Foundation Features" above) cannot run in parallel in a greenfield project even if they appear together in a wave — they share scaffolding files and must be implemented sequentially until the base is in place.
 
 - **Wave 1**: F01
-- **Wave 2**: F10
-- **Wave 3**: F02, F03, F05
-- **Wave 4**: F04, F06
-- **Wave 5**: F08
-- **Wave 6**: F07
-- **Wave 7**: F09
+- **Wave 2**: F02, F03, F05
+- **Wave 3**: F04, F06
+- **Wave 4**: F08
+- **Wave 5**: F07
+- **Wave 6**: F09
 
 ### Priority levels
 - **1** = Essential — product does not work without it
@@ -508,27 +455,20 @@ Features within the same wave can be built in parallel. A wave starts only after
 
 ```mermaid
 graph TD
-  F01[F01 Foundation] --> F10[F10 Auth]
-  F10 --> F02[F02 Agents]
-  F10 --> F03[F03 Skills]
-  F10 --> F05[F05 Templates]
+  F01[F01 Foundation] --> F02[F02 Agents]
+  F01 --> F03[F03 Skills]
+  F01 --> F05[F05 Templates]
   F02 --> F04[F04 Attachment]
   F03 --> F04
-  F10 --> F04
   F02 --> F06[F06 Conversations]
-  F10 --> F06
   F06 --> F08[F08 Memory]
-  F10 --> F08
   F02 --> F07[F07 Chat]
   F04 --> F07
   F06 --> F07
   F08 --> F07
-  F10 --> F07
   F01 --> F09[F09 i18n]
-  F02 --> F09
   F05 --> F09
   F07 --> F09
-  F10 --> F09
 ```
 
 ## 9. Acceptance Criteria
@@ -608,22 +548,6 @@ graph TD
 - [ ] A missing translation key renders the English string, never a raw key
 - [ ] Language switching and template localization work fully offline (no network call)
 
-### F10. Access and Identity
-- [ ] An unauthenticated request to any non-`/auth/*`, non-health route returns 401 and the frontend redirects to `/auth/login`
-- [ ] A user can sign in with valid email and password via the React login form; the credentials are posted to backend `/auth/login`, which calls FusionAuth `/api/login` server-to-server
-- [ ] After successful login the user lands on the originally requested route, or on the agents list if none was requested
-- [ ] Access token expiry (1h) triggers silent refresh via `/auth/refresh` without user-visible interruption
-- [ ] Refresh token expiry (30d) or revocation redirects the user to login with a "Your session expired" notice and preserves any unsent composer draft
-- [ ] "Sign out" clears auth cookies, revokes the refresh token in FusionAuth, and redirects to login
-- [ ] Refresh token persists across browser restarts via an httpOnly secure cookie; the user is not re-prompted for credentials when reopening the browser within 30 days
-- [ ] The global navigation displays the signed-in user's email
-- [ ] An account with the `admin` role can access admin-only routes; a non-admin account receives 403 on the same routes
-- [ ] Invalid credentials on the login form surface "Email or password is incorrect" inline and clear the password field; no information leakage about which field was wrong
-- [ ] FusionAuth unreachable: backend `/auth/login` and `/auth/refresh` return 503 with a clear message; protected routes return 401
-- [ ] With `DISABLE_AUTH=1` and `RUST_ENV=development`, the auth middleware is bypassed and a fake subject is injected; the flag has no effect in production builds
-- [ ] On first launch of the F10 release against a pre-F10 database, the cutover wipes existing data per the documented breaking-change procedure and reinitializes the schema
-- [ ] Local `docker compose up -d` brings up `fusionauth` and `fusionauth-db` alongside the existing `postgres` service, kickstart seeds the test admin user, and the app is reachable behind the login flow without manual FusionAuth configuration
-
 ### Cross-Feature Integration
 - [ ] Agents created in F02 successfully use the LLM provider clients and default keys configured in F01 when chatting in F07
 - [ ] Skills created in F03 appear in the F04 attachment picker, and their instruction bodies are concatenated into the F07 composed prompt in the attachment order maintained by F04
@@ -633,5 +557,3 @@ graph TD
 - [ ] Editing a skill body in F03 changes the next composed prompt produced by F07 for every agent that has the skill attached via F04
 - [ ] Provider/model selected per agent in F02 overrides the F01 defaults when F07 dispatches a request
 - [ ] The active locale from F09 propagates into the F07 prompt as a response-language directive and selects the F05 template variant shown to the user
-- [ ] An authenticated session from F10 is required for every F02–F09 operation; protected API calls without a valid access token return 401
-- [ ] The `admin` role claim from F10 gates admin-only flows without exposing those routes to non-admin users
