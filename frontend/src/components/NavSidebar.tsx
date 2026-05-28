@@ -1,7 +1,8 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Bot, Sparkles, BookOpen, MessageSquare, Settings } from "lucide-react";
+import { Bot, Sparkles, BookOpen, MessageSquare, Settings, LogOut } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { useLogout, useMe } from "@/hooks/useAuth";
 
 const items = [
   { to: "/agents", labelKey: "nav.agents", icon: Bot, disabled: false },
@@ -13,8 +14,17 @@ const items = [
 
 export function NavSidebar() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const { data: me } = useMe();
+  const logout = useLogout();
+
+  const onSignOut = async () => {
+    await logout.mutateAsync();
+    navigate("/login", { replace: true });
+  };
+
   return (
-    <aside className="w-56 shrink-0 border-r border-border bg-card/40 p-3">
+    <aside className="flex w-56 shrink-0 flex-col border-r border-border bg-card/40 p-3">
       <div className="px-2 py-3 text-sm font-semibold tracking-tight">{t("common.appName")}</div>
       <nav className="mt-2 flex flex-col gap-1">
         {items.map(({ to, labelKey, icon: Icon, disabled }) =>
@@ -46,6 +56,29 @@ export function NavSidebar() {
           ),
         )}
       </nav>
+
+      {me && (
+        <div className="mt-auto border-t border-border pt-3">
+          <div className="px-2 pb-1 text-xs text-muted-foreground">
+            {t("auth.signedInAs")}
+          </div>
+          <div
+            className="px-2 pb-2 text-sm font-medium truncate"
+            title={me.email}
+          >
+            {me.email}
+          </div>
+          <button
+            type="button"
+            onClick={onSignOut}
+            disabled={logout.isPending}
+            className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-foreground/80 transition-colors hover:bg-accent hover:text-accent-foreground disabled:opacity-50"
+          >
+            <LogOut className="h-4 w-4" />
+            {logout.isPending ? t("auth.signingOut") : t("auth.signOut")}
+          </button>
+        </div>
+      )}
     </aside>
   );
 }

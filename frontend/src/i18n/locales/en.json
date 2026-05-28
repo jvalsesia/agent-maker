@@ -302,5 +302,21 @@
       "copied": "Copied",
       "copyFailed": "Copy failed"
     }
+  },
+  "auth": {
+    "title": "Sign in",
+    "subtitle": "Sign in to your shared workspace.",
+    "email": "Email",
+    "password": "Password",
+    "signIn": "Sign in",
+    "signingIn": "Signing in…",
+    "signOut": "Sign out",
+    "signingOut": "Signing out…",
+    "signedInAs": "Signed in as",
+    "sessionExpired": "Your session expired. Please sign in again.",
+    "error": {
+      "invalidCredentials": "Email or password is incorrect.",
+      "unavailable": "Authentication service unavailable — please retry shortly."
+    }
   }
 }
