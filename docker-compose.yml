@@ -17,52 +17,6 @@ services:
       timeout: 2s
       retries: 30
 
-  fusionauth-db:
-    image: postgres:16
-    container_name: agent-maker-fusionauth-db
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: fusionauth
-      POSTGRES_PASSWORD: fusionauth
-      POSTGRES_DB: fusionauth
-    volumes:
-      - fusionauth_pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U fusionauth -d fusionauth"]
-      interval: 2s
-      timeout: 2s
-      retries: 30
-
-  fusionauth:
-    image: fusionauth/fusionauth-app:1.55.1
-    container_name: agent-maker-fusionauth
-    restart: unless-stopped
-    depends_on:
-      fusionauth-db:
-        condition: service_healthy
-    environment:
-      DATABASE_URL: jdbc:postgresql://fusionauth-db:5432/fusionauth
-      DATABASE_ROOT_USERNAME: fusionauth
-      DATABASE_ROOT_PASSWORD: fusionauth
-      DATABASE_USERNAME: fusionauth
-      DATABASE_PASSWORD: fusionauth
-      FUSIONAUTH_APP_MEMORY: 512M
-      FUSIONAUTH_APP_RUNTIME_MODE: development
-      FUSIONAUTH_APP_URL: http://fusionauth:9011
-      FUSIONAUTH_APP_KICKSTART_FILE: /usr/local/fusionauth/kickstart/kickstart.json
-      SEARCH_TYPE: database
-    volumes:
-      - ./infra/fusionauth/kickstart:/usr/local/fusionauth/kickstart:ro
-      - fusionauth_config:/usr/local/fusionauth/config
-    ports:
-      - "127.0.0.1:9011:9011"
-    healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost:9011/api/status >/dev/null || exit 1"]
-      interval: 5s
-      timeout: 5s
-      retries: 60
-      start_period: 60s
-
   backend:
     build:
       context: ./backend
@@ -72,23 +26,12 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      fusionauth:
-        condition: service_healthy
     environment:
       DATABASE_URL: postgres://agentmaker:agentmaker@postgres:5432/agentmaker
       PORT: "8787"
       AGENT_MAKER_HOME: /data
       AGENT_MAKER_FORCE_FILE_STORE: "1"
       RUST_LOG: agent_maker=info,tower_http=info,sqlx=warn
-      RUST_ENV: production
-      FUSIONAUTH_BASE_URL: http://fusionauth:9011
-      FUSIONAUTH_TENANT_ID: "00000000-0000-0000-0000-000000003efa"
-      FUSIONAUTH_APPLICATION_ID: "00000000-0000-0000-0000-0000000a9911"
-      FUSIONAUTH_CLIENT_ID: "00000000-0000-0000-0000-0000000a9911"
-      FUSIONAUTH_CLIENT_SECRET: "agent-maker-local-dev-secret-do-not-use-in-prod"
-      FUSIONAUTH_API_KEY: "agent-maker-local-dev-api-key-do-not-use-in-prod"
-      AUTH_COOKIE_DOMAIN: ""
-      AUTH_COOKIE_SECURE: "false"
     ports:
       - "127.0.0.1:8787:8787"
     volumes:
@@ -111,5 +54,3 @@ services:
 volumes:
   agent_maker_pgdata:
   agent_maker_data:
-  fusionauth_pgdata:
-  fusionauth_config:

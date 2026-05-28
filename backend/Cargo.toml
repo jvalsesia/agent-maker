@@ -50,11 +50,6 @@ async-trait = "0.1"
 dotenvy = "0.15"
 anyhow = "1"
 
-jsonwebtoken = "9"
-axum-extra = { version = "0.10", features = ["cookie"] }
-tokio-util = "0.7"
-time = "0.3"
-
 [dev-dependencies]
 tempfile = "3"
 mockito = "1"

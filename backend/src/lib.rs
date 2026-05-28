@@ -1,5 +1,4 @@
 pub mod agents;
-pub mod auth;
 pub mod chat;
 pub mod config;
 pub mod conversations;
@@ -17,8 +16,7 @@ pub mod telemetry;
 pub mod templates;
 
 use crate::{
-    agents::AgentsService, auth::AuthService, chat::ChatService,
-    config::AuthConfig, conversations::ConversationsService,
+    agents::AgentsService, chat::ChatService, conversations::ConversationsService,
     llm::{LlmProvider, ProviderRegistry},
     memory::{EmbeddingProvider, MemoryService, OpenAiEmbedding}, routes::AppState,
     settings::SettingsService, skill_attachments::AttachmentsService, skills::SkillsService,
@@ -35,7 +33,6 @@ fn build_state(
     secrets: Arc<secrets::AnyStore>,
     providers: ProviderRegistry,
     embedder: Arc<dyn EmbeddingProvider>,
-    auth: AuthService,
 ) -> Arc<AppState> {
     templates::catalog::validate().expect("starter template catalog must validate");
     let settings_svc = SettingsService::new(pool.clone(), secrets.clone());
@@ -64,7 +61,6 @@ fn build_state(
         conversations: conversations_svc,
         memory: memory_svc,
         chat: chat_svc,
-        auth,
     })
 }
 
@@ -74,9 +70,7 @@ pub fn build_app(pool: PgPool, secrets_home: &Path) -> Router {
     let secrets = Arc::new(secrets::auto(secrets_home));
     let providers = ProviderRegistry::new(secrets.clone());
     let embedder = Arc::new(OpenAiEmbedding::new(secrets.clone()));
-    let auth_cfg = AuthConfig::from_env().expect("AuthConfig::from_env");
-    let auth = AuthService::new(auth_cfg, reqwest::Client::new());
-    routes::router(build_state(pool, secrets, providers, embedder, auth))
+    routes::router(build_state(pool, secrets, providers, embedder))
 }
 
 /// Same as `build_app` but lets the caller inject a specific `AnyStore` (e.g., always a
@@ -84,8 +78,7 @@ pub fn build_app(pool: PgPool, secrets_home: &Path) -> Router {
 pub fn build_app_with_store(pool: PgPool, secrets: Arc<secrets::AnyStore>) -> Router {
     let providers = ProviderRegistry::new(secrets.clone());
     let embedder = Arc::new(OpenAiEmbedding::new(secrets.clone()));
-    let auth = AuthService::for_tests();
-    routes::router(build_state(pool, secrets, providers, embedder, auth))
+    routes::router(build_state(pool, secrets, providers, embedder))
 }
 
 /// Build the app with a stub streaming provider and embedder (chat integration
@@ -97,6 +90,5 @@ pub fn build_app_for_test(
     embedder: Arc<dyn EmbeddingProvider>,
 ) -> Router {
     let providers = ProviderRegistry::with_override(secrets.clone(), provider);
-    let auth = AuthService::for_tests();
-    routes::router(build_state(pool, secrets, providers, embedder, auth))
+    routes::router(build_state(pool, secrets, providers, embedder))
 }
