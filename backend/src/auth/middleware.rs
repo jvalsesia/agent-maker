@@ -20,8 +20,10 @@ pub async fn require_auth(
     next: Next,
 ) -> Response {
     // Health endpoint stays public so docker/Railway healthchecks don't
-    // need credentials.
-    if req.uri().path() == "/api/health" {
+    // need credentials. axum strips the `/api` prefix on nested routes
+    // before middleware sees the request, so match either form.
+    let path = req.uri().path();
+    if path == "/api/health" || path == "/health" {
         return next.run(req).await;
     }
 

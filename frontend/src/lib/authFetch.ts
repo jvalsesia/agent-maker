@@ -20,11 +20,7 @@ async function tryRefresh(): Promise<boolean> {
     } catch {
       return false;
     } finally {
-      // Release the single-flight slot a tick later so the original caller
-      // can resolve before any retry kicks off another refresh.
-      setTimeout(() => {
-        refreshInFlight = null;
-      }, 0);
+      refreshInFlight = null;
     }
   })();
   return refreshInFlight;
