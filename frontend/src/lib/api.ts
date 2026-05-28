@@ -1,4 +1,5 @@
 import type { Locale } from "@/i18n/locales/supported";
+import { authFetch } from "@/lib/authFetch";
 
 export type ProviderName = "anthropic" | "openai" | "openai_compat";
 
@@ -32,7 +33,7 @@ export class ApiError extends Error {
 }
 
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
-  const res = await fetch(path, {
+  const res = await authFetch(path, {
     method,
     headers: body ? { "content-type": "application/json" } : undefined,
     body: body ? JSON.stringify(body) : undefined,
@@ -347,7 +348,7 @@ export async function* chatStream(
   input: ChatStartInput,
   signal?: AbortSignal,
 ): AsyncGenerator<ChatStreamEvent> {
-  const res = await fetch(`/api/conversations/${conversationId}/chat`, {
+  const res = await authFetch(`/api/conversations/${conversationId}/chat`, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(input),

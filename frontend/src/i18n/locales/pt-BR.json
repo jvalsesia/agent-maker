@@ -302,5 +302,21 @@
       "copied": "Copiado",
       "copyFailed": "Falha ao copiar"
     }
+  },
+  "auth": {
+    "title": "Entrar",
+    "subtitle": "Entre no seu workspace compartilhado.",
+    "email": "E-mail",
+    "password": "Senha",
+    "signIn": "Entrar",
+    "signingIn": "Entrando…",
+    "signOut": "Sair",
+    "signingOut": "Saindo…",
+    "signedInAs": "Conectado como",
+    "sessionExpired": "Sua sessão expirou. Entre novamente.",
+    "error": {
+      "invalidCredentials": "E-mail ou senha incorretos.",
+      "unavailable": "Serviço de autenticação indisponível — tente novamente em instantes."
+    }
   }
 }
