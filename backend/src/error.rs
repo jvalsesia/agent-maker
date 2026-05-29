@@ -30,6 +30,12 @@ pub enum AppError {
     #[error("context too large: {0}")]
     ContextTooLarge(String),
 
+    #[error("{0}")]
+    Unauthorized(String),
+
+    #[error("authentication is temporarily unavailable")]
+    AuthUnavailable,
+
     #[error("key store error: {0}")]
     KeyStore(String),
 
@@ -60,6 +66,8 @@ impl AppError {
             AppError::ConfirmationRequired => "confirmation_required".into(),
             AppError::Conflict(_) => "conflict".into(),
             AppError::ContextTooLarge(_) => "context_too_large".into(),
+            AppError::Unauthorized(_) => "unauthorized".into(),
+            AppError::AuthUnavailable => "auth_unavailable".into(),
             AppError::KeyStore(_) => "key_write_failed".into(),
             AppError::Database(_) => "database_error".into(),
             AppError::Io(_) => "io_error".into(),
@@ -75,6 +83,8 @@ impl AppError {
             AppError::TemplateNotFound(_) => StatusCode::NOT_FOUND,
             AppError::Conflict(_) => StatusCode::CONFLICT,
             AppError::ContextTooLarge(_) => StatusCode::UNPROCESSABLE_ENTITY,
+            AppError::Unauthorized(_) => StatusCode::UNAUTHORIZED,
+            AppError::AuthUnavailable => StatusCode::SERVICE_UNAVAILABLE,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }

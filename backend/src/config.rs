@@ -6,6 +6,14 @@ pub struct Config {
     pub bind_addr: SocketAddr,
     pub agent_maker_home: PathBuf,
     pub serve_frontend_dist: Option<PathBuf>,
+    /// Clerk JWKS endpoint (`/.well-known/jwks.json`). Auth is enforced only when
+    /// this and `clerk_issuer` are both set; with both unset auth is disabled.
+    pub clerk_jwks_url: Option<String>,
+    /// Expected `iss` claim of Clerk session tokens.
+    pub clerk_issuer: Option<String>,
+    /// Optional cross-origin frontend origin to allow (CORS). Same-origin dev/prod
+    /// needs no value.
+    pub cors_allowed_origin: Option<String>,
 }
 
 impl Config {
@@ -32,13 +40,34 @@ impl Config {
         } else {
             Some(PathBuf::from("./frontend/dist"))
         };
+
+        // Clerk auth is enforced only when both variables are present. Providing
+        // exactly one is almost certainly a misconfiguration, so fail fast.
+        let clerk_jwks_url = non_empty_var("CLERK_JWKS_URL");
+        let clerk_issuer = non_empty_var("CLERK_ISSUER");
+        if clerk_jwks_url.is_some() != clerk_issuer.is_some() {
+            anyhow::bail!(
+                "CLERK_JWKS_URL and CLERK_ISSUER must be set together (got only one); \
+                 set both to enforce auth or neither to disable it"
+            );
+        }
+        let cors_allowed_origin = non_empty_var("CORS_ALLOWED_ORIGIN");
+
         Ok(Self {
             database_url,
             bind_addr,
             agent_maker_home,
             serve_frontend_dist,
+            clerk_jwks_url,
+            clerk_issuer,
+            cors_allowed_origin,
         })
     }
+}
+
+/// Read an env var, treating absent and empty-string as equivalently unset.
+fn non_empty_var(key: &str) -> Option<String> {
+    env::var(key).ok().map(|v| v.trim().to_string()).filter(|v| !v.is_empty())
 }
 
 fn expand_home(input: &str) -> PathBuf {
