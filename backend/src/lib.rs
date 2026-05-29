@@ -1,4 +1,5 @@
 pub mod agents;
+pub mod auth;
 pub mod chat;
 pub mod config;
 pub mod conversations;
@@ -16,8 +17,8 @@ pub mod telemetry;
 pub mod templates;
 
 use crate::{
-    agents::AgentsService, chat::ChatService, conversations::ConversationsService,
-    llm::{LlmProvider, ProviderRegistry},
+    agents::AgentsService, auth::AuthState, chat::ChatService,
+    conversations::ConversationsService, llm::{LlmProvider, ProviderRegistry},
     memory::{EmbeddingProvider, MemoryService, OpenAiEmbedding}, routes::AppState,
     settings::SettingsService, skill_attachments::AttachmentsService, skills::SkillsService,
     templates::TemplatesService,
@@ -26,13 +27,14 @@ use axum::Router;
 use sqlx::PgPool;
 use std::{path::Path, sync::Arc};
 
-/// Assemble `AppState` from a pool, secret store, provider registry, and
-/// embedding provider. Shared by all builders so the wiring stays in one place.
+/// Assemble `AppState` from a pool, secret store, provider registry, embedding
+/// provider, and auth state. Shared by all builders so the wiring stays in one place.
 fn build_state(
     pool: PgPool,
     secrets: Arc<secrets::AnyStore>,
     providers: ProviderRegistry,
     embedder: Arc<dyn EmbeddingProvider>,
+    auth: AuthState,
 ) -> Arc<AppState> {
     templates::catalog::validate().expect("starter template catalog must validate");
     let settings_svc = SettingsService::new(pool.clone(), secrets.clone());
@@ -61,28 +63,51 @@ fn build_state(
         conversations: conversations_svc,
         memory: memory_svc,
         chat: chat_svc,
+        auth,
     })
 }
 
-/// Build the Axum router from a live `PgPool` and a directory to host the file-store fallback.
-/// Used by `main.rs` and by integration tests.
-pub fn build_app(pool: PgPool, secrets_home: &Path) -> Router {
+/// Build the Axum router from a live `PgPool` and a directory to host the file-store
+/// fallback, with auth and CORS sourced from the environment via `Config`. Used by
+/// `main.rs`.
+pub fn build_app(
+    pool: PgPool,
+    secrets_home: &Path,
+    auth: AuthState,
+    cors_allowed_origin: Option<String>,
+) -> Router {
     let secrets = Arc::new(secrets::auto(secrets_home));
     let providers = ProviderRegistry::new(secrets.clone());
     let embedder = Arc::new(OpenAiEmbedding::new(secrets.clone()));
-    routes::router(build_state(pool, secrets, providers, embedder))
+    routes::router(build_state(pool, secrets, providers, embedder, auth), cors_allowed_origin)
 }
 
 /// Same as `build_app` but lets the caller inject a specific `AnyStore` (e.g., always a
-/// `FileStore` under tempdir) so tests don't touch the developer's OS keychain.
+/// `FileStore` under tempdir) so tests don't touch the developer's OS keychain. Auth is
+/// disabled (pass-through), matching local dev with no Clerk environment.
 pub fn build_app_with_store(pool: PgPool, secrets: Arc<secrets::AnyStore>) -> Router {
     let providers = ProviderRegistry::new(secrets.clone());
     let embedder = Arc::new(OpenAiEmbedding::new(secrets.clone()));
-    routes::router(build_state(pool, secrets, providers, embedder))
+    routes::router(
+        build_state(pool, secrets, providers, embedder, AuthState::disabled()),
+        None,
+    )
+}
+
+/// Like `build_app_with_store` but with a caller-supplied `AuthState`, so the auth
+/// integration tests can run the real router with auth enabled against a seeded JWKS cache.
+pub fn build_app_with_auth(
+    pool: PgPool,
+    secrets: Arc<secrets::AnyStore>,
+    auth: AuthState,
+) -> Router {
+    let providers = ProviderRegistry::new(secrets.clone());
+    let embedder = Arc::new(OpenAiEmbedding::new(secrets.clone()));
+    routes::router(build_state(pool, secrets, providers, embedder, auth), None)
 }
 
 /// Build the app with a stub streaming provider and embedder (chat integration
-/// tests), so no live LLM/embedding network calls are made.
+/// tests), so no live LLM/embedding network calls are made. Auth disabled.
 pub fn build_app_for_test(
     pool: PgPool,
     secrets: Arc<secrets::AnyStore>,
@@ -90,5 +115,8 @@ pub fn build_app_for_test(
     embedder: Arc<dyn EmbeddingProvider>,
 ) -> Router {
     let providers = ProviderRegistry::with_override(secrets.clone(), provider);
-    routes::router(build_state(pool, secrets, providers, embedder))
+    routes::router(
+        build_state(pool, secrets, providers, embedder, AuthState::disabled()),
+        None,
+    )
 }

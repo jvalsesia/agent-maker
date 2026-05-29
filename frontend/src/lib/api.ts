@@ -31,12 +31,45 @@ export class ApiError extends Error {
   }
 }
 
+// ----- Auth wiring (F10) -----
+// The Clerk session lives in React state, but the fetch wrapper is framework-free.
+// `ClerkTokenBridge` registers a token getter and an unauthorized handler here at
+// mount; both default to no-ops so the client works unchanged when auth is disabled.
+
+type TokenGetter = () => Promise<string | null>;
+type UnauthorizedHandler = () => void;
+
+let tokenGetter: TokenGetter | null = null;
+let unauthorizedHandler: UnauthorizedHandler | null = null;
+
+/** Register/clear the Clerk session-token getter. Pass `null` to unregister. */
+export function setAuthTokenGetter(getter: TokenGetter | null): void {
+  tokenGetter = getter;
+}
+
+/** Register/clear the handler invoked on any `401` (e.g. redirect to sign-in). */
+export function setUnauthorizedHandler(handler: UnauthorizedHandler | null): void {
+  unauthorizedHandler = handler;
+}
+
+/** Build request headers, attaching a bearer token when one is available. */
+async function authHeaders(base?: Record<string, string>): Promise<Record<string, string>> {
+  const headers: Record<string, string> = { ...base };
+  if (tokenGetter) {
+    const token = await tokenGetter();
+    if (token) headers["authorization"] = `Bearer ${token}`;
+  }
+  return headers;
+}
+
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+  const headers = await authHeaders(body ? { "content-type": "application/json" } : undefined);
   const res = await fetch(path, {
     method,
-    headers: body ? { "content-type": "application/json" } : undefined,
+    headers: Object.keys(headers).length ? headers : undefined,
     body: body ? JSON.stringify(body) : undefined,
   });
+  if (res.status === 401) unauthorizedHandler?.();
   if (res.status === 204) return undefined as T;
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new ApiError(res.status, data as ApiErrorBody);
@@ -347,12 +380,14 @@ export async function* chatStream(
   input: ChatStartInput,
   signal?: AbortSignal,
 ): AsyncGenerator<ChatStreamEvent> {
+  const headers = await authHeaders({ "content-type": "application/json" });
   const res = await fetch(`/api/conversations/${conversationId}/chat`, {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers,
     body: JSON.stringify(input),
     signal,
   });
+  if (res.status === 401) unauthorizedHandler?.();
   if (!res.ok || !res.body) {
     const data = await res.json().catch(() => ({}));
     throw new ApiError(res.status, data as ApiErrorBody);

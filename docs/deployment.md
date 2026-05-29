@@ -60,6 +60,33 @@ the extension binary must be present on the database.
 > The simplest setup is to give the backend a fixed `PORT` (e.g. `8787`) and
 > reference that same port in the frontend's `BACKEND_URL`.
 
+## Authentication (Clerk login wall — F10)
+
+The app gates every protected route and `/api` endpoint behind a Clerk session.
+Auth is **enforced only when fully configured** so local dev and the test suite
+keep working without a Clerk account:
+
+- **Backend** enforces auth **iff both** `CLERK_JWKS_URL` and `CLERK_ISSUER` are
+  set. With both unset the `require_auth` middleware is a pass-through (a warning
+  is logged once). Setting **exactly one fails fast at startup** — set both or
+  neither. Only `GET /api/health` stays public when auth is enabled.
+- **Frontend** mounts `<ClerkProvider>` and the route guard **iff**
+  `VITE_CLERK_PUBLISHABLE_KEY` is present at build time. Absent → the login wall
+  is disabled on the client.
+
+> Production checklist: to actually enforce the wall you must set **all three** —
+> the backend's `CLERK_JWKS_URL` + `CLERK_ISSUER` and the frontend's
+> `VITE_CLERK_PUBLISHABLE_KEY` (the latter is baked in at build time, so rebuild
+> the frontend image after setting it). A prod frontend missing the publishable
+> key silently disables the wall on the client.
+
+Get the values from the Clerk dashboard for your instance: the publishable key,
+the Frontend API domain (→ `CLERK_ISSUER`, e.g.
+`https://<instance>.clerk.accounts.dev`), and its `/.well-known/jwks.json` URL
+(→ `CLERK_JWKS_URL`). `CORS_ALLOWED_ORIGIN` is only needed when the frontend is
+served from a different origin than the backend; same-origin deployments (the
+nginx proxy / Vite dev proxy) leave it unset.
+
 ## Environment variables reference
 
 | Variable | Service | Purpose | Default |
@@ -70,4 +97,8 @@ the extension binary must be present on the database.
 | `AGENT_MAKER_HOME` | backend | Data/secret-store dir | `/data` |
 | `AGENT_MAKER_FORCE_FILE_STORE` | backend | Skip OS keychain (required in containers) | `1` |
 | `RUST_LOG` | backend | Log filter | info |
+| `CLERK_JWKS_URL` | backend | Clerk JWKS endpoint; enables auth (with `CLERK_ISSUER`) | unset (auth off) |
+| `CLERK_ISSUER` | backend | Expected JWT `iss`; enables auth (with `CLERK_JWKS_URL`) | unset (auth off) |
+| `CORS_ALLOWED_ORIGIN` | backend | Allowed cross-origin frontend (CORS) | unset (same-origin) |
+| `VITE_CLERK_PUBLISHABLE_KEY` | frontend | Clerk publishable key (build-time); enables the client wall | unset (auth off) |
 | `BACKEND_URL` | frontend | Upstream for `/api` proxy | `http://backend:8787` |

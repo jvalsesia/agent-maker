@@ -24,6 +24,12 @@
     "dbUnavailableTitle": "Database unavailable",
     "dbUnavailableBody": "The backend cannot reach Postgres. Start it with:"
   },
+  "auth": {
+    "signInSubtitle": "Sign in to your workspace",
+    "signUpSubtitle": "Create your account",
+    "account": "Account",
+    "sessionExpired": "Your session expired. Please sign in again."
+  },
   "categories": {
     "all": "All",
     "writing": "writing",

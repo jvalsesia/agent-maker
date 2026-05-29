@@ -2,9 +2,19 @@ import { lazy, Suspense } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Layout } from "@/components/Layout";
+import { RequireAuth } from "@/components/RequireAuth";
+import { ClerkTokenBridge } from "@/components/ClerkTokenBridge";
+import { clerkEnabled } from "@/lib/clerk";
 import { useSettings } from "@/hooks/useSettings";
 import { useApplyTheme } from "@/hooks/useTheme";
 import { applyLocale } from "@/hooks/useLocale";
+
+const SignInPage = lazy(() =>
+  import("@/pages/SignIn").then((m) => ({ default: m.SignInPage })),
+);
+const SignUpPage = lazy(() =>
+  import("@/pages/SignUp").then((m) => ({ default: m.SignUpPage })),
+);
 
 const OnboardingPage = lazy(() =>
   import("@/pages/Onboarding").then((m) => ({ default: m.OnboardingPage })),
@@ -67,9 +77,19 @@ function Gate({ children }: { children: React.ReactNode }) {
 export function AppRoutes() {
   return (
     <Suspense fallback={<div className="p-6 text-sm text-muted-foreground">Loading…</div>}>
+      {/* Bridges the Clerk session into api.ts; only mounted when Clerk is enabled. */}
+      {clerkEnabled && <ClerkTokenBridge />}
       <Routes>
-        <Route path="/onboarding" element={<Gate><OnboardingPage /></Gate>} />
-        <Route element={<Gate><Layout /></Gate>}>
+        {/* Public auth routes — never guarded, to avoid a redirect loop. */}
+        <Route path="/sign-in/*" element={<SignInPage />} />
+        <Route path="/sign-up/*" element={<SignUpPage />} />
+
+        {/* Everything below requires a signed-in session (above the onboarding Gate). */}
+        <Route
+          path="/onboarding"
+          element={<RequireAuth><Gate><OnboardingPage /></Gate></RequireAuth>}
+        />
+        <Route element={<RequireAuth><Gate><Layout /></Gate></RequireAuth>}>
           <Route path="/" element={<Navigate to="/agents" replace />} />
           <Route path="/agents" element={<AgentsList />} />
           <Route path="/agents/new" element={<AgentForm />} />

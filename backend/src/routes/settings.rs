@@ -15,11 +15,16 @@ use std::sync::Arc;
 
 pub fn routes() -> Router<Arc<AppState>> {
     Router::new()
-        .route("/health", get(health))
         .route("/settings", get(get_settings).put(put_settings))
         .route("/settings/providers/{name}/key", put(put_key).delete(delete_key))
         .route("/settings/providers/{name}/test", post(test_provider))
         .route("/settings/data/wipe", post(wipe))
+}
+
+/// Public (unauthenticated) routes — the health check is reachable without a
+/// bearer token so liveness probes work behind the login wall.
+pub fn public_routes() -> Router<Arc<AppState>> {
+    Router::new().route("/health", get(health))
 }
 
 async fn health(State(s): State<Arc<AppState>>) -> AppResult<Json<serde_json::Value>> {
