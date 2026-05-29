@@ -32,6 +32,10 @@ services:
       AGENT_MAKER_HOME: /data
       AGENT_MAKER_FORCE_FILE_STORE: "1"
       RUST_LOG: agent_maker=info,tower_http=info,sqlx=warn
+      # Clerk auth (F10). Both must be set to enforce the login wall; leave
+      # unset (drop these lines / blank in .env) to run in pass-through mode.
+      CLERK_ISSUER: ${CLERK_ISSUER:-}
+      CLERK_JWKS_URL: ${CLERK_JWKS_URL:-}
     ports:
       - "127.0.0.1:8787:8787"
     volumes:
@@ -41,6 +45,9 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        # Build-time: Vite inlines this into the bundle. Set in root .env.
+        VITE_CLERK_PUBLISHABLE_KEY: ${VITE_CLERK_PUBLISHABLE_KEY:-}
     container_name: agent-maker-frontend
     restart: unless-stopped
     depends_on:

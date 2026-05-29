@@ -15,6 +15,11 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile --config.dangerouslyAllowAllBuilds=true
 
 COPY . .
+# Clerk publishable key is inlined by Vite at build time (it ships to the
+# browser by design, so baking it into the image is safe). Absent → the SPA
+# builds with the login wall disabled. Switching keys requires a rebuild.
+ARG VITE_CLERK_PUBLISHABLE_KEY
+ENV VITE_CLERK_PUBLISHABLE_KEY=$VITE_CLERK_PUBLISHABLE_KEY
 RUN pnpm build
 
 # ---- Runtime stage ----
