@@ -24,6 +24,12 @@
     "dbUnavailableTitle": "Banco de dados indisponível",
     "dbUnavailableBody": "O backend não consegue acessar o Postgres. Inicie-o com:"
   },
+  "auth": {
+    "signInSubtitle": "Entre no seu espaço de trabalho",
+    "signUpSubtitle": "Crie sua conta",
+    "account": "Conta",
+    "sessionExpired": "Sua sessão expirou. Entre novamente."
+  },
   "categories": {
     "all": "Todos",
     "writing": "escrita",
