@@ -87,6 +87,28 @@ the Frontend API domain (→ `CLERK_ISSUER`, e.g.
 served from a different origin than the backend; same-origin deployments (the
 nginx proxy / Vite dev proxy) leave it unset.
 
+### Docker Compose (local full stack)
+
+`docker-compose.yml` wires all three Clerk values from the repo-root `.env` (or
+your shell env) automatically — they're optional, so an empty/missing value just
+leaves auth off:
+
+- Backend reads `CLERK_ISSUER` / `CLERK_JWKS_URL` at **runtime** (`${...:-}`
+  interpolation), so a plain `docker compose up -d` picks up changes.
+- The frontend's `VITE_CLERK_PUBLISHABLE_KEY` is passed as a **build arg** and
+  inlined by Vite into the bundle. This means you must build, not just restart:
+
+  ```bash
+  docker compose up -d --build   # required so the frontend bakes in the key
+  ```
+
+  Rebuild the frontend image any time the publishable key changes; a restart
+  alone reuses the previously built (auth-off) bundle.
+
+The compose frontend serves on `http://localhost:8080` (nginx, proxying `/api`
+to the backend), so add that origin to your Clerk instance's allowed origins for
+local testing.
+
 ## Environment variables reference
 
 | Variable | Service | Purpose | Default |
