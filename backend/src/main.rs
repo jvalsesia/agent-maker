@@ -1,4 +1,9 @@
-use agent_maker::{build_app, config::Config, db, telemetry};
+use agent_maker::{
+    auth::{AuthConfig, AuthState},
+    build_app,
+    config::Config,
+    db, telemetry,
+};
 use tower_http::trace::TraceLayer;
 
 #[tokio::main]
@@ -7,8 +12,15 @@ async fn main() -> anyhow::Result<()> {
     let cfg = Config::from_env()?;
     tracing::info!(?cfg.bind_addr, "starting agent-maker backend");
 
+    let auth = AuthState::new(AuthConfig {
+        jwks_url: cfg.clerk_jwks_url.clone(),
+        issuer: cfg.clerk_issuer.clone(),
+    });
+    tracing::info!(auth_enabled = auth.enabled(), "authentication mode resolved");
+
     let pool = db::init(&cfg.database_url).await?;
-    let mut app = build_app(pool, &cfg.agent_maker_home).layer(TraceLayer::new_for_http());
+    let mut app = build_app(pool, &cfg.agent_maker_home, auth, cfg.cors_allowed_origin.clone())
+        .layer(TraceLayer::new_for_http());
 
     if let Some(dist) = cfg.serve_frontend_dist.as_ref()
         && dist.exists() {
