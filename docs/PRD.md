@@ -128,6 +128,15 @@ agent-maker turns the LEGO metaphor into a real product. Personas (Agents) and r
 - As a user, I want my agents to reply in my chosen language by default, so that I don't have to instruct each agent about language separately
 - As a power user, I want to override the response language per agent, so that I can keep a language-specific agent regardless of my UI locale
 
+### F10. Authentication and Login (Clerk)
+- As a user, I want a dedicated login page where I sign in with my email and password, so that only authenticated users can reach the workspace
+- As a new user, I want to create an account from a sign-up page, so that I can get access without manual provisioning
+- As an unauthenticated user, I want to be redirected to the login page whenever I open a protected screen, so that the app is never exposed without a session
+- As a signed-in user, I want an account menu with a sign-out control in the app header, so that I can manage my session and log out
+- As a user, I want my session to persist across reloads, so that I don't have to log in every time I open the app
+- As the system, I want to validate every protected API request's bearer token against Clerk's public keys, so that requests with missing, invalid, or expired tokens are rejected
+- As the system, I want to return 401 on an invalid or expired token, so that the frontend can clear state and redirect the user to the login page
+
 ## 6. Functionalities
 
 ### F01. App Foundation and Settings
@@ -136,7 +145,7 @@ agent-maker turns the LEGO metaphor into a real product. Personas (Agents) and r
 - Local persistence layer (PostgreSQL with pgvector extension, started via docker-compose) and configured LLM provider clients with default API keys (used by F02, F03, F04, F05, F06, F07, F08)
 
 **Capabilities:**
-- Single-user, local-only web application — backend bound to localhost; no authentication
+- Local-first web application — backend bound to localhost in local development; access is gated by an authentication login wall (see F10) so the app can also run on a deployed origin
 - Settings page exposing: default provider selection (Anthropic, OpenAI, local/Ollama-compatible), per-provider API key inputs (paste, mask, save), default model per provider, and a "test connection" button per provider
 - API keys stored locally and encrypted at rest using OS-level keychain when available, falling back to an app-level encrypted store
 - PostgreSQL database (with the `pgvector` extension enabled) provisioned via a bundled `docker-compose.yml` and initialized on first run with schema for agents, skills, agent_skill links, conversations, messages, and message embeddings (using a `vector` column type)
@@ -386,10 +395,44 @@ agent-maker turns the LEGO metaphor into a real product. Personas (Agents) and r
 - Unsupported persisted/browser locale: silently maps to the nearest supported locale, defaulting to `en`
 - Locale setting save fails: toast with retry; the previously active locale remains in effect
 
+### F10. Authentication and Login (Clerk)
+
+**Consumes:**
+- F01: global app layout, routing, and persistent navigation shell (the login/sign-up routes and the post-login authenticated shell mount into F01's routing and layout)
+
+**Capabilities:**
+- Identity provider: Clerk, using the Email/Password authentication strategy; both sign-in and self-service sign-up are enabled
+- Authentication is a **login wall over a single shared workspace** — a valid session is required to use the app, but agents, skills, conversations, and memory remain a single shared workspace and are **not** scoped per user (no `owner_id`, no per-user data isolation)
+- Frontend: `@clerk/clerk-react` with `<ClerkProvider>` mounted at the app root; dedicated unauthenticated routes `/sign-in` and `/sign-up` rendering Clerk's `<SignIn/>` and `<SignUp/>` components, and a `<UserButton/>` in the app header for account management and sign-out
+- Route protection: every application route except `/sign-in` and `/sign-up` is guarded on the client; an unauthenticated visit redirects to `/sign-in`
+- API authorization: the shared HTTP client wrapper asynchronously fetches the current session token via Clerk's `getToken()` and injects it as `Authorization: Bearer <JWT>` on every outgoing backend request
+- Backend uses **pure JWT verification** — no vendor SDK (`clerk-rs`) — built on standard crates: `jsonwebtoken` (decode + cryptographic validation), `reqwest` (JWKS fetch), `serde`/`serde_json` (claim deserialization), `tower-http` (CORS)
+- Startup key caching: on boot the backend fetches Clerk's JSON Web Key Set from `CLERK_JWKS_URL` and caches the public keys in memory (application state) to avoid a network call per request
+- Custom Axum `FromRequestParts` extractor (`Claims`) that: (1) extracts the Bearer string from the `Authorization` header, (2) selects the cached key matching the token header's `kid`, (3) validates the signature, confirms `exp` is in the future, and confirms `iss` matches the configured `CLERK_ISSUER`
+- All `/api` routes are guarded by the `Claims` extractor; the only public exceptions are the health-check endpoint and unauthenticated bootstrap endpoints. A missing/invalid/expired token yields `401 Unauthorized`
+- JWKS key rotation: if signature verification fails against the cached keys, the backend lazily re-fetches the JWKS once and re-validates before rejecting, so Clerk's background key rotation does not require a server restart
+- CORS hardening: `tower-http::cors::CorsLayer` is configured to allow the `Authorization` header and the specific configured frontend origin
+- Configuration via environment: frontend `VITE_CLERK_PUBLISHABLE_KEY`; backend `CLERK_JWKS_URL` (the application's `/.well-known/jwks.json`) and `CLERK_ISSUER`
+
+**Experience:**
+- Visiting any protected route while signed out renders a centered, branded login page (Clerk `<SignIn/>`); a link toggles to the sign-up page and back
+- On successful authentication, Clerk establishes the session and the user lands on the default authenticated view (the agents list); the header shows the `<UserButton/>` with avatar, account menu, and sign-out
+- The session persists across reloads via Clerk's session cookie, with no re-login flicker
+- Sign out clears the session and returns the user to `/sign-in`
+- i18n: the login/sign-up surrounding chrome (page titles, the sign-in/sign-up toggle link, the "session expired" notice) is localized via i18next in `en` and `pt-BR`, with keys added to both catalogs
+
+**Error Handling:**
+- Invalid credentials on sign-in: Clerk renders an inline field error and the user remains on the login page
+- Expired or invalid JWT on a protected API call: the backend returns `401`; the frontend clears authenticated state and redirects to `/sign-in` with a "your session expired, please sign in again" notice
+- JWKS fetch fails at startup: the backend logs the failure and still serves; the fetch is retried lazily on the first protected request, and if the key set is still unavailable, protected requests return `503` with a clear "authentication service unavailable" message rather than silently allowing access
+- Signature verification fails because of key rotation: the backend re-fetches the JWKS once and re-validates before returning `401`
+- Missing or misconfigured `CLERK_ISSUER` / publishable key: the app surfaces a clear configuration error at startup/boot and never falls back to serving protected routes unauthenticated
+
 ## 7. Out of Scope
 
-**Multi-user, sharing, and collaboration**
-- No user accounts, no authentication, no permissions
+**Multi-user data isolation, sharing, and collaboration**
+- Authentication exists (Clerk login wall, see F10), but the workspace is a single shared workspace — no per-user data isolation; all authenticated users see and edit the same agents, skills, and conversations
+- No roles, permissions, or organization/team concept
 - No sharing or publishing agents/skills to other users or to a public directory
 - No real-time co-editing of agents or skills
 
@@ -431,10 +474,12 @@ agent-maker turns the LEGO metaphor into a real product. Personas (Agents) and r
 | F08 | Memory System | 1 | F06 |
 | F07 | Chat Runtime | 1 | F02, F04, F06, F08 |
 | F09 | Internationalization (i18n) | 2 | F01, F02, F05, F07 |
+| F10 | Authentication and Login (Clerk) | 1 | F01 |
 
 ### Foundation Features
 These features set up shared project infrastructure. In a greenfield project they must be implemented sequentially before or alongside any feature that depends on them:
 - **F01 App Foundation and Settings** — scaffolds the web app (frontend framework, routing, global layout, theme), provisions PostgreSQL with pgvector via a bundled `docker-compose.yml`, runs database migrations, wires the multi-provider LLM abstraction, and provides the encrypted settings/key store
+- **F10 Authentication and Login (Clerk)** — wires cross-cutting auth: the root `<ClerkProvider>` and client route guards on the frontend, and the JWKS-cached pure-JWT `Claims` extractor plus CORS layer guarding `/api` routes on the backend; every protected screen and endpoint implicitly relies on this layer
 
 ### Execution Waves
 Features within the same wave can be built in parallel. A wave starts only after every feature in earlier waves is complete.
@@ -442,7 +487,7 @@ Features within the same wave can be built in parallel. A wave starts only after
 **Note:** Foundation features (see "Foundation Features" above) cannot run in parallel in a greenfield project even if they appear together in a wave — they share scaffolding files and must be implemented sequentially until the base is in place.
 
 - **Wave 1**: F01
-- **Wave 2**: F02, F03, F05
+- **Wave 2**: F02, F03, F10, F05
 - **Wave 3**: F04, F06
 - **Wave 4**: F08
 - **Wave 5**: F07
@@ -469,6 +514,7 @@ graph TD
   F01 --> F09[F09 i18n]
   F05 --> F09
   F07 --> F09
+  F01 --> F10[F10 Auth]
 ```
 
 ## 9. Acceptance Criteria
@@ -548,6 +594,17 @@ graph TD
 - [ ] A missing translation key renders the English string, never a raw key
 - [ ] Language switching and template localization work fully offline (no network call)
 
+### F10. Authentication and Login (Clerk)
+- [ ] Visiting any protected route while signed out redirects to the `/sign-in` login page
+- [ ] A user can sign in with valid email/password credentials and land on the agents view with the session established
+- [ ] A new user can create an account from the `/sign-up` page using email/password
+- [ ] After signing in, reloading the app preserves the session without requiring re-login
+- [ ] The app header shows an account menu, and signing out clears the session and returns to `/sign-in`
+- [ ] Every `/api` route except the health-check returns `401` when called without a valid bearer token, and succeeds when called with a valid Clerk JWT
+- [ ] A request with an expired or invalid JWT receives `401`, and the frontend redirects to the login page with a "session expired" notice
+- [ ] When signature verification fails against cached keys, the backend re-fetches the JWKS once before rejecting (key rotation is tolerated without a restart)
+- [ ] Invalid sign-in credentials show an inline error and keep the user on the login page
+
 ### Cross-Feature Integration
 - [ ] Agents created in F02 successfully use the LLM provider clients and default keys configured in F01 when chatting in F07
 - [ ] Skills created in F03 appear in the F04 attachment picker, and their instruction bodies are concatenated into the F07 composed prompt in the attachment order maintained by F04
@@ -557,3 +614,4 @@ graph TD
 - [ ] Editing a skill body in F03 changes the next composed prompt produced by F07 for every agent that has the skill attached via F04
 - [ ] Provider/model selected per agent in F02 overrides the F01 defaults when F07 dispatches a request
 - [ ] The active locale from F09 propagates into the F07 prompt as a response-language directive and selects the F05 template variant shown to the user
+- [ ] The login/sign-up routes and authenticated app shell from F10 mount correctly into F01's routing and layout, with the post-login shell rendering the standard left navigation
