@@ -1,7 +1,9 @@
 import { NavLink } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Bot, Sparkles, BookOpen, MessageSquare, Settings } from "lucide-react";
+import { SignedIn, UserButton, useUser } from "@clerk/clerk-react";
 import { cn } from "@/lib/cn";
+import { clerkEnabled } from "@/lib/clerk";
 
 const items = [
   { to: "/agents", labelKey: "nav.agents", icon: Bot, disabled: false },
@@ -11,10 +13,25 @@ const items = [
   { to: "/settings", labelKey: "nav.settings", icon: Settings, disabled: false },
 ] as const;
 
+function AccountFooter() {
+  const { t } = useTranslation();
+  const { user } = useUser();
+  const label =
+    user?.primaryEmailAddress?.emailAddress ?? user?.fullName ?? t("auth.account");
+  return (
+    <div className="mt-auto flex items-center gap-2 border-t border-border px-2 pt-3">
+      <UserButton />
+      <span className="truncate text-xs text-muted-foreground" title={label}>
+        {label}
+      </span>
+    </div>
+  );
+}
+
 export function NavSidebar() {
   const { t } = useTranslation();
   return (
-    <aside className="w-56 shrink-0 border-r border-border bg-card/40 p-3">
+    <aside className="flex w-56 shrink-0 flex-col border-r border-border bg-card/40 p-3">
       <div className="px-2 py-3 text-sm font-semibold tracking-tight">{t("common.appName")}</div>
       <nav className="mt-2 flex flex-col gap-1">
         {items.map(({ to, labelKey, icon: Icon, disabled }) =>
@@ -46,6 +63,11 @@ export function NavSidebar() {
           ),
         )}
       </nav>
+      {clerkEnabled && (
+        <SignedIn>
+          <AccountFooter />
+        </SignedIn>
+      )}
     </aside>
   );
 }
