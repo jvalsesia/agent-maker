@@ -42,6 +42,7 @@ describe("AgentsList", () => {
               created_at: "2026-01-01T00:00:00Z",
               attached_skill_count: 0,
               conversation_count: 0,
+              subagents: [{ alias: "code-reviewer", name: "Code Reviewer" }],
             },
           ],
         });
@@ -56,5 +57,6 @@ describe("AgentsList", () => {
     );
     await waitFor(() => expect(screen.getByText("Editor")).toBeInTheDocument());
     expect(screen.getByText("anthropic:claude-haiku-4-5")).toBeInTheDocument();
+    expect(screen.getByText("@code-reviewer")).toBeInTheDocument();
   });
 });

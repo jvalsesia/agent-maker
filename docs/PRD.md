@@ -145,6 +145,8 @@ agent-maker turns the LEGO metaphor into a real product. Personas (Agents) and r
 - As a user, I want the sub-agent's reply to appear as its own clearly labeled turn before the parent agent responds, so that I can see who produced what
 - As a user, I want the parent agent to read the sub-agent's reply and continue with its own answer, so that I get a synthesized final response
 - As a user, I want to reorder, rename the alias of, and detach sub-agents, so that I can manage an agent's delegation roster over time
+- As a user, I want to see the sub-agents attached to each agent directly in the agents list, so that I can tell at a glance which agents delegate and to whom without opening each one
+- As a user, I want a list of the current agent's attached sub-agents in the chat window, just above the message composer, so that I know which @handles I can summon before I type
 - As the system, I want to reject attachments that would create a delegation cycle and to cap delegation depth, so that agents cannot call each other indefinitely
 
 ## 6. Functionalities
@@ -464,6 +466,8 @@ agent-maker turns the LEGO metaphor into a real product. Personas (Agents) and r
 - Deleting an agent cascades: it removes every attachment where that agent is a parent or a child, consistent with F04 behavior.
 
 **Experience:**
+- The agents list surfaces, on each agent row that has sub-agents, the attached sub-agents as compact @handle chips (each chip shows the alias and reveals the child agent's name on hover), so the delegation roster is visible without opening the agent. Agents with no sub-agents show nothing extra. The list endpoint returns each agent's attached sub-agents (alias + child name) for this purpose.
+- The chat window shows a thin sub-agents bar directly above the message composer listing the current agent's attached sub-agents as @handle chips (with the child name and optional "when to use" hint on hover), so the user sees which handles are summonable before typing; the bar is hidden when the agent has no sub-agents.
 - The agent detail view gains a "Sub-agents" section (parallel to the F04 "Skills" section) listing attached sub-agents with their @handle, the child agent's name, the optional "when to use" hint, drag handles, and a detach control.
 - An "Attach sub-agent" button opens a picker listing all other agents (search + select); a "New sub-agent" action in the same place opens the standard agent-create form (F02) pre-wired so that, on save, the freshly created agent is attached to the parent automatically. On attach, the user can edit the alias and the optional description.
 - Agents that would form a cycle (or the parent itself) appear disabled in the picker with an explanatory tooltip.
@@ -672,6 +676,8 @@ graph TD
 - [ ] A delegated sub-agent call neither reads nor writes the parent conversation's long-term memory (stateless delegation)
 - [ ] When a sub-agent call fails, its turn is marked "error" with a retry and the parent does not synthesize until the delegation is resolved
 - [ ] Reordering, editing the alias of, and detaching sub-agents persists across reload, and detaching leaves both agents otherwise intact
+- [ ] The agents list shows each agent's attached sub-agents as @handle chips, and an agent with no sub-agents shows none; the chips update after attaching or detaching a sub-agent
+- [ ] The chat window displays the current agent's attached sub-agents as @handle chips just above the message composer, and the bar is hidden when the agent has no sub-agents
 - [ ] All sub-agent UI strings render in both English and Português (Brasil)
 
 ### Cross-Feature Integration

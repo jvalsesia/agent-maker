@@ -32,6 +32,17 @@ pub struct AgentSummary {
     pub created_at: DateTime<Utc>,
     pub attached_skill_count: i64,
     pub conversation_count: i64,
+    /// Sub-agents attached to this agent (F11), ordered by attachment position.
+    /// Surfaced so the agents list can show each agent's delegation roster at a glance.
+    pub subagents: sqlx::types::Json<Vec<SubagentChip>>,
+}
+
+/// Compact view of an attached sub-agent for the agents list — just enough to
+/// render a labeled @handle chip without a per-agent round trip.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SubagentChip {
+    pub alias: String,
+    pub name: String,
 }
 
 #[derive(Debug, Clone, Deserialize)]

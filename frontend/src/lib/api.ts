@@ -89,6 +89,13 @@ export interface AgentSummary {
   created_at: string;
   attached_skill_count: number;
   conversation_count: number;
+  subagents: AgentSummarySubagent[];
+}
+
+/** Compact sub-agent reference shown as an @handle chip in the agents list (F11). */
+export interface AgentSummarySubagent {
+  alias: string;
+  name: string;
 }
 
 export interface Agent {

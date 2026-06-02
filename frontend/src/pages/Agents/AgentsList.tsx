@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { Bot, Copy, MessageSquare, Plus, Trash2 } from "lucide-react";
+import { Bot, Copy, CornerDownRight, MessageSquare, Plus, Trash2 } from "lucide-react";
 import { ApiError, type AgentSort } from "@/lib/api";
 import { useAgents, useCloneAgent, useDeleteAgent } from "@/hooks/useAgents";
 import { Button } from "@/components/ui/button";
@@ -114,6 +114,23 @@ export function AgentsList() {
                 </div>
                 {a.preamble && (
                   <p className="mt-1 truncate text-sm text-muted-foreground">{a.preamble}</p>
+                )}
+                {a.subagents.length > 0 && (
+                  <div
+                    className="mt-1.5 flex flex-wrap items-center gap-1.5"
+                    aria-label={t("agents.list.subagentsLabel")}
+                  >
+                    <CornerDownRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                    {a.subagents.map((s) => (
+                      <span
+                        key={s.alias}
+                        title={s.name}
+                        className="rounded bg-muted px-1.5 py-0.5 text-xs font-mono text-muted-foreground"
+                      >
+                        @{s.alias}
+                      </span>
+                    ))}
+                  </div>
                 )}
               </Link>
               <div className="flex items-center gap-1">
