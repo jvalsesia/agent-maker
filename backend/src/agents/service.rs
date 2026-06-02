@@ -112,12 +112,21 @@ impl AgentsService {
             r#"SELECT a.id, a.name, a.preamble, a.provider, a.model, a.has_override_key,
                       a.last_used_at, a.created_at,
                       COALESCE(s.cnt, 0) AS attached_skill_count,
-                      COALESCE(c.cnt, 0) AS conversation_count
+                      COALESCE(c.cnt, 0) AS conversation_count,
+                      COALESCE(sa.items, '[]'::json) AS subagents
                FROM agents a
                LEFT JOIN (SELECT agent_id, COUNT(*) AS cnt FROM agent_skills GROUP BY agent_id) s
                    ON s.agent_id = a.id
                LEFT JOIN (SELECT agent_id, COUNT(*) AS cnt FROM conversations GROUP BY agent_id) c
                    ON c.agent_id = a.id
+               LEFT JOIN (
+                   SELECT sa.parent_id,
+                          json_agg(json_build_object('alias', sa.alias, 'name', ca.name)
+                                   ORDER BY sa.position) AS items
+                   FROM agent_subagents sa
+                   JOIN agents ca ON ca.id = sa.child_id
+                   GROUP BY sa.parent_id
+               ) sa ON sa.parent_id = a.id
                {where_clause}
                ORDER BY {sort} {order}, a.name ASC"#,
             where_clause = if search.is_some() {

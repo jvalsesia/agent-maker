@@ -112,7 +112,8 @@
       "createButton": "Create agent",
       "openChat": "Open chat",
       "cloned": "Cloned as {{name}}",
-      "deleted": "Deleted {{name}}"
+      "deleted": "Deleted {{name}}",
+      "subagentsLabel": "Sub-agents"
     },
     "form": {
       "newTitle": "New agent",
@@ -311,6 +312,9 @@
       "embeddedTurns": "Embedded turns:",
       "clearButton": "Clear memory",
       "clearing": "Clearing…"
+    },
+    "subagentBar": {
+      "label": "Sub-agents — mention with @:"
     },
     "subagent": {
       "tag": "sub-agent",

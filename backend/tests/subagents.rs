@@ -359,6 +359,50 @@ async fn reorder_rejects_non_permutation(pool: PgPool) {
 }
 
 #[sqlx::test(migrations = "./migrations")]
+async fn agents_list_surfaces_subagent_chips(pool: PgPool) {
+    let parent = seed_agent(&pool, "parent").await;
+    // Deterministic child name so we can assert the chip's name field.
+    let child: Uuid = sqlx::query_scalar(
+        "INSERT INTO agents (name, system_prompt, provider, model)
+         VALUES ('Code Reviewer', 'p', 'anthropic', 'claude-haiku-4-5') RETURNING id",
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    let app = build_app_with_store(pool, make_store());
+
+    app.clone()
+        .oneshot(req_json(
+            "POST",
+            &format!("/api/agents/{parent}/subagents"),
+            json!({ "child_id": child, "alias": "reviewer" }),
+        ))
+        .await
+        .unwrap();
+
+    let resp = app.oneshot(req_get("/api/agents")).await.unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+    let body = json_body(resp).await;
+    let agents = body["agents"].as_array().unwrap();
+
+    let parent_row = agents
+        .iter()
+        .find(|a| a["id"] == parent.to_string())
+        .expect("parent present in list");
+    let chips = parent_row["subagents"].as_array().unwrap();
+    assert_eq!(chips.len(), 1);
+    assert_eq!(chips[0]["alias"], "reviewer");
+    assert_eq!(chips[0]["name"], "Code Reviewer");
+
+    // The child agent, with no attachments of its own, reports an empty array.
+    let child_row = agents
+        .iter()
+        .find(|a| a["id"] == child.to_string())
+        .expect("child present in list");
+    assert!(child_row["subagents"].as_array().unwrap().is_empty());
+}
+
+#[sqlx::test(migrations = "./migrations")]
 async fn detach_closes_gap(pool: PgPool) {
     let parent = seed_agent(&pool, "p").await;
     let a = seed_agent(&pool, "a").await;
