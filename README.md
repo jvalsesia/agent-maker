@@ -11,9 +11,10 @@ LEGO blocks to extend behavior across your whole roster. A per-agent **memory
 system** keeps the most recent turns verbatim and semantically recalls older
 relevant turns so long-running conversations stay coherent.
 
-It is **local-first and single-user**: the backend binds to localhost, there is no
-authentication, and you bring your own provider keys (BYOK). See
-[`docs/PRD.md`](docs/PRD.md) for the full product vision.
+It is **local-first and BYOK**: the backend binds to localhost in local dev and you
+bring your own provider keys. A **Clerk login wall** gates access to a single shared
+workspace (data is not isolated per user), so the app can also run on a deployed
+origin. See [`docs/PRD.md`](docs/PRD.md) for the full product vision.
 
 ## Features
 
@@ -33,6 +34,15 @@ authentication, and you bring your own provider keys (BYOK). See
   with syntax-highlighted code.
 - **Memory** — recent-N verbatim window plus top-K semantic recall via `pgvector`,
   with a "what I recalled" indicator and per-conversation memory clearing.
+- **Sub-agents** — attach existing agents as sub-agents with an `@handle`; type
+  `@alias` in chat to delegate that turn to a specialist (its own persona, provider,
+  and model), which replies as a labeled turn before the parent synthesizes the
+  final answer. Up to 10 per agent, 3 mentions per turn, self-attach and cycles
+  rejected.
+- **Authentication** — a Clerk email/password login wall (sign-in + sign-up) over a
+  shared workspace; every `/api` route is verified against Clerk's JWKS. Auth is
+  enforced only when `CLERK_JWKS_URL` and `CLERK_ISSUER` are set, so local dev runs
+  without it.
 - **i18n** — English and Brazilian Portuguese (`en`, `pt-BR`), with localized
   templates and a per-agent response-language override.
 
@@ -59,7 +69,7 @@ authentication, and you bring your own provider keys (BYOK). See
 │   ├── src/                # routes/ + per-domain model.rs/service.rs/mod.rs
 │   └── migrations/         # SQLx migrations, applied on startup
 ├── frontend/               # React/Vite SPA (pages/, hooks/, components/, i18n/)
-└── docs/                   # PRD + per-feature spec & plan (F01–F09)
+└── docs/                   # PRD + per-feature spec & plan (F01–F11)
 ```
 
 ## Prerequisites
@@ -119,6 +129,6 @@ store — recommended on Linux desktops where Secret Service is unreliable.
 ## Documentation
 
 - Product requirements: [`docs/PRD.md`](docs/PRD.md)
-- Per-feature specs and plans: [`docs/`](docs/) (F01–F09)
+- Per-feature specs and plans: [`docs/`](docs/) (F01–F11)
 - Deployment: [`docs/deployment.md`](docs/deployment.md)
 - Contributor guidance for Claude Code: [`CLAUDE.md`](CLAUDE.md)
