@@ -13,6 +13,7 @@ pub mod secrets;
 pub mod settings;
 pub mod skill_attachments;
 pub mod skills;
+pub mod subagents;
 pub mod telemetry;
 pub mod templates;
 
@@ -21,7 +22,7 @@ use crate::{
     conversations::ConversationsService, llm::{LlmProvider, ProviderRegistry},
     memory::{EmbeddingProvider, MemoryService, OpenAiEmbedding}, routes::AppState,
     settings::SettingsService, skill_attachments::AttachmentsService, skills::SkillsService,
-    templates::TemplatesService,
+    subagents::SubagentsService, templates::TemplatesService,
 };
 use axum::Router;
 use sqlx::PgPool;
@@ -44,6 +45,7 @@ fn build_state(
     let templates_svc = TemplatesService::new(pool.clone());
     let conversations_svc = ConversationsService::new(pool.clone());
     let memory_svc = MemoryService::new(pool.clone(), embedder);
+    let subagents_svc = SubagentsService::new(pool.clone());
     let chat_svc = ChatService::new(
         pool,
         providers.clone(),
@@ -51,6 +53,7 @@ fn build_state(
         conversations_svc.clone(),
         memory_svc.clone(),
         attachments_svc.clone(),
+        subagents_svc.clone(),
         secrets,
     );
     Arc::new(AppState {
@@ -62,6 +65,7 @@ fn build_state(
         templates: templates_svc,
         conversations: conversations_svc,
         memory: memory_svc,
+        subagents: subagents_svc,
         chat: chat_svc,
         auth,
     })

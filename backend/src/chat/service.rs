@@ -21,6 +21,7 @@ use crate::memory::model::MemoryQuery;
 use crate::secrets::{AnyStore, SecretStore};
 use crate::skill_attachments::AttachmentsService;
 use crate::skill_attachments::service::model_context_chars;
+use crate::subagents::SubagentsService;
 
 /// Default ceiling on generated tokens per turn, and the per-token char reserve
 /// subtracted from the model budget to leave room for the response.
@@ -36,6 +37,7 @@ pub struct ChatService {
     pub conversations: ConversationsService,
     pub memory: MemoryService,
     pub attachments: AttachmentsService,
+    pub subagents: SubagentsService,
     pub secrets: Arc<AnyStore>,
     inflight: Arc<Mutex<HashSet<Uuid>>>,
 }
@@ -63,6 +65,7 @@ impl ChatService {
         conversations: ConversationsService,
         memory: MemoryService,
         attachments: AttachmentsService,
+        subagents: SubagentsService,
         secrets: Arc<AnyStore>,
     ) -> Self {
         Self {
@@ -72,6 +75,7 @@ impl ChatService {
             conversations,
             memory,
             attachments,
+            subagents,
             secrets,
             inflight: Arc::new(Mutex::new(HashSet::new())),
         }
