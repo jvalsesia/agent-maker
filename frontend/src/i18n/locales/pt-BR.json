@@ -181,6 +181,40 @@
       "summary": "Prompt composto: {{used}} / {{total}} caracteres ({{pct}}%)",
       "nearLimit": "perto do limite de contexto do modelo — o chat pode falhar",
       "consider": "considere encurtar ou desanexar habilidades"
+    },
+    "subagentsPanel": {
+      "title": "Subagentes",
+      "empty": "Nenhum subagente vinculado. Vincule um agente existente ou crie um novo para delegar tarefas via @menção.",
+      "attach": "Vincular subagente",
+      "newSubagent": "Novo subagente",
+      "moveUp": "Mover {{name}} para cima",
+      "moveDown": "Mover {{name}} para baixo",
+      "detach": "Desvincular {{name}}",
+      "attached": "Subagente vinculado"
+    },
+    "subagentPicker": {
+      "title": "Vincular um subagente",
+      "description": "Escolha um agente existente para delegar. Defina um @apelido para chamá-lo no chat.",
+      "searchPlaceholder": "Buscar agentes por nome",
+      "noMatch": "Nenhum agente corresponde.",
+      "alreadyAttached": "Já vinculado",
+      "aliasLabel": "Apelido (@apelido)",
+      "aliasPlaceholder": "ex.: code-reviewer (padrão: o nome do agente)",
+      "descriptionLabel": "Quando usar (opcional)",
+      "descriptionPlaceholder": "ex.: Use para revisão de código e caça a bugs",
+      "attach": "Vincular"
+    },
+    "newSubagent": {
+      "title": "Novo subagente",
+      "description": "Crie um agente novo e vincule-o a este.",
+      "nameLabel": "Nome",
+      "promptLabel": "Prompt do sistema",
+      "providerLabel": "Provedor",
+      "modelLabel": "Modelo",
+      "modelPlaceholder": "Selecione um modelo",
+      "aliasLabel": "Apelido (@apelido, opcional)",
+      "aliasPlaceholder": "Padrão: o nome do agente",
+      "create": "Criar e vincular"
     }
   },
   "skills": {

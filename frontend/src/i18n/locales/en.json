@@ -181,6 +181,40 @@
       "summary": "Composed prompt: {{used}} / {{total}} chars ({{pct}}%)",
       "nearLimit": "near model context limit — chat may fail",
       "consider": "consider shortening or detaching skills"
+    },
+    "subagentsPanel": {
+      "title": "Sub-agents",
+      "empty": "No sub-agents attached. Attach an existing agent or create a new one to delegate work via @mention.",
+      "attach": "Attach sub-agent",
+      "newSubagent": "New sub-agent",
+      "moveUp": "Move {{name}} up",
+      "moveDown": "Move {{name}} down",
+      "detach": "Detach {{name}}",
+      "attached": "Sub-agent attached"
+    },
+    "subagentPicker": {
+      "title": "Attach a sub-agent",
+      "description": "Pick an existing agent to delegate to. Give it an @handle to summon it from chat.",
+      "searchPlaceholder": "Search agents by name",
+      "noMatch": "No agents match.",
+      "alreadyAttached": "Already attached",
+      "aliasLabel": "Alias (@handle)",
+      "aliasPlaceholder": "e.g. code-reviewer (defaults to the agent name)",
+      "descriptionLabel": "When to use (optional)",
+      "descriptionPlaceholder": "e.g. Use for code review and bug hunting",
+      "attach": "Attach"
+    },
+    "newSubagent": {
+      "title": "New sub-agent",
+      "description": "Create a brand-new agent and attach it to this one.",
+      "nameLabel": "Name",
+      "promptLabel": "System prompt",
+      "providerLabel": "Provider",
+      "modelLabel": "Model",
+      "modelPlaceholder": "Select a model",
+      "aliasLabel": "Alias (@handle, optional)",
+      "aliasPlaceholder": "Defaults to the agent name",
+      "create": "Create & attach"
     }
   },
   "skills": {
