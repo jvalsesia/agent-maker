@@ -137,6 +137,16 @@ agent-maker turns the LEGO metaphor into a real product. Personas (Agents) and r
 - As the system, I want to validate every protected API request's bearer token against Clerk's public keys, so that requests with missing, invalid, or expired tokens are rejected
 - As the system, I want to return 401 on an invalid or expired token, so that the frontend can clear state and redirect the user to the login page
 
+### F11. Sub-agents
+- As a user, I want to attach an existing agent as a sub-agent of another agent (e.g. a "Code Reviewer" under a "Tech Leader"), so that one agent can delegate specialized work to another
+- As a user, I want to create a brand-new agent directly from a parent's Sub-agents section and have it attached on save, so that I can spin up a specialist without leaving the page
+- As a user, I want to give each attached sub-agent a short @handle alias, so that I can summon it by name from the chat
+- As a user, I want to type @handle in my message to route that turn to a specific sub-agent, so that I control exactly when delegation happens
+- As a user, I want the sub-agent's reply to appear as its own clearly labeled turn before the parent agent responds, so that I can see who produced what
+- As a user, I want the parent agent to read the sub-agent's reply and continue with its own answer, so that I get a synthesized final response
+- As a user, I want to reorder, rename the alias of, and detach sub-agents, so that I can manage an agent's delegation roster over time
+- As the system, I want to reject attachments that would create a delegation cycle and to cap delegation depth, so that agents cannot call each other indefinitely
+
 ## 6. Functionalities
 
 ### F01. App Foundation and Settings
@@ -428,6 +438,46 @@ agent-maker turns the LEGO metaphor into a real product. Personas (Agents) and r
 - Signature verification fails because of key rotation: the backend re-fetches the JWKS once and re-validates before returning `401`
 - Missing or misconfigured `CLERK_ISSUER` / publishable key: the app surfaces a clear configuration error at startup/boot and never falls back to serving protected routes unauthenticated
 
+### F11. Sub-agents
+
+**Consumes:**
+- F02: agent definitions (the child agent's name, preamble, system prompt, provider, model, optional per-agent key)
+- F04: the ordered many-to-many attachment pattern (reused for agent → sub-agent links)
+- F07: chat runtime and prompt composition pipeline (delegation executes inside a parent turn)
+
+**Provides:**
+- Sub-agent (delegated) reply turns inserted into the conversation, plus the delegation context handed to the parent turn for synthesis (used by F07)
+
+**Capabilities:**
+- A "sub-agent" is not a new entity type: it is an existing agent (the "child") attached to a parent agent. Any agent can be a parent, a child, or both, and every child remains a normal agent that is independently listed and chattable.
+- A parent agent can have 0 to 10 attached sub-agents. Each attachment carries: the child agent reference, an alias (the @handle), an optional "when to use" description, and an order position.
+- Alias rules: 1–30 characters, lowercase letters, digits, and hyphens only; unique within a single parent's attached set; defaults to a slug derived from the child agent's name on attach and is editable.
+- Attachments are ordered via drag-and-drop and keyboard reorder, mirroring F04 skill ordering.
+- Trigger is an explicit @mention: a user message containing `@alias` routes that turn through the matching sub-agent. There is no automatic routing, router pre-call, tool-calling, or function-calling — the model never decides on its own to delegate.
+- Multiple sub-agents may be mentioned in one message; each distinct matched alias is invoked once in mention order, bounded to a maximum of 3 invocations per turn. Mentions beyond the third are ignored with an inline notice.
+- Each delegation is a real, separate LLM call dispatched with the child agent's own system prompt, preamble, provider, model, and optional per-agent key — never a persona composed into the parent's prompt.
+- Delegation is stateless: the child receives only the task for this turn (the user's message with the routing @handles removed) and neither reads nor writes the parent conversation's history or long-term memory; the child performs no F08 recall of its own.
+- The child reply is produced by draining the (otherwise streaming) provider response to a complete string, then persisted as a distinct assistant turn labeled with the child's alias/name.
+- After every mentioned sub-agent has replied, the parent agent runs its normal F07 turn with the sub-agent replies supplied as additional context (a labeled "Sub-agent <alias> replied: …" block), producing the final synthesized parent message.
+- Cycle prevention: an agent cannot be attached as its own sub-agent, and an attachment is rejected if it would close a cycle in the agent → sub-agent graph (e.g., A→B then B→A).
+- Depth limit: delegation depth is capped at 2 — a child invoked via delegation does not itself process @mentions in v1, so a single user turn triggers at most one level of delegation.
+- Deleting an agent cascades: it removes every attachment where that agent is a parent or a child, consistent with F04 behavior.
+
+**Experience:**
+- The agent detail view gains a "Sub-agents" section (parallel to the F04 "Skills" section) listing attached sub-agents with their @handle, the child agent's name, the optional "when to use" hint, drag handles, and a detach control.
+- An "Attach sub-agent" button opens a picker listing all other agents (search + select); a "New sub-agent" action in the same place opens the standard agent-create form (F02) pre-wired so that, on save, the freshly created agent is attached to the parent automatically. On attach, the user can edit the alias and the optional description.
+- Agents that would form a cycle (or the parent itself) appear disabled in the picker with an explanatory tooltip.
+- In chat, typing `@` surfaces an autocomplete of the parent's attached sub-agent handles.
+- When a turn delegates, the UI renders each sub-agent reply as a distinct, labeled bubble (e.g. "Code Reviewer") visually subordinate to the parent answer, followed by the parent's synthesized reply; a small chip on the parent reply shows how many sub-agents were consulted this turn.
+- i18n: all new labels, buttons, picker and autocomplete text, tooltips, notices, and confirmations are localized in `en` and `pt-BR`.
+
+**Error Handling:**
+- @handle matches no attached sub-agent: the mention is treated as plain text and an inline notice clarifies that no sub-agent by that handle is attached; the parent turn proceeds normally.
+- A sub-agent's provider/model call fails (4xx/5xx/network): the failed sub-agent turn is marked "error" with the provider message and a retry; the parent turn is held until the delegation is retried or dismissed, so the parent never synthesizes on a missing delegated reply.
+- The child's selected provider has no key configured: the sub-agent turn surfaces a key-missing error identifying the child agent, with a deep link to settings.
+- Attachment would create a cycle, target the agent itself, or exceed the 10-sub-agent cap: the attach action is rejected with a specific inline error and no link is created.
+- Composed parent prompt (including sub-agent replies) exceeds the model context window: F07's existing reduction applies; if it still does not fit, the turn fails with a clear "context too large" message.
+
 ## 7. Out of Scope
 
 **Multi-user data isolation, sharing, and collaboration**
@@ -453,7 +503,7 @@ agent-maker turns the LEGO metaphor into a real product. Personas (Agents) and r
 
 **Advanced agent capabilities**
 - No tool use (web search, code execution, browser automation) in v1
-- No multi-agent orchestration (agents calling agents)
+- Multi-agent orchestration (agents delegating to sub-agents) is supported, but only via explicit user @mention (see F11); autonomous routing through tool-calling / function-calling — where the model itself decides when to delegate — remains out of scope in v1
 - No scheduled or background agent runs
 
 **Operational features**
@@ -475,6 +525,7 @@ agent-maker turns the LEGO metaphor into a real product. Personas (Agents) and r
 | F07 | Chat Runtime | 1 | F02, F04, F06, F08 |
 | F09 | Internationalization (i18n) | 2 | F01, F02, F05, F07 |
 | F10 | Authentication and Login (Clerk) | 1 | F01 |
+| F11 | Sub-agents | 2 | F02, F04, F07 |
 
 ### Foundation Features
 These features set up shared project infrastructure. In a greenfield project they must be implemented sequentially before or alongside any feature that depends on them:
@@ -491,7 +542,7 @@ Features within the same wave can be built in parallel. A wave starts only after
 - **Wave 3**: F04, F06
 - **Wave 4**: F08
 - **Wave 5**: F07
-- **Wave 6**: F09
+- **Wave 6**: F09, F11
 
 ### Priority levels
 - **1** = Essential — product does not work without it
@@ -515,6 +566,9 @@ graph TD
   F05 --> F09
   F07 --> F09
   F01 --> F10[F10 Auth]
+  F02 --> F11[F11 Sub-agents]
+  F04 --> F11
+  F07 --> F11
 ```
 
 ## 9. Acceptance Criteria
@@ -605,6 +659,21 @@ graph TD
 - [ ] When signature verification fails against cached keys, the backend re-fetches the JWKS once before rejecting (key rotation is tolerated without a restart)
 - [ ] Invalid sign-in credentials show an inline error and keep the user on the login page
 
+### F11. Sub-agents
+- [ ] A user can attach an existing agent as a sub-agent, giving it an @handle alias and an optional "when to use" note, and see it listed in the parent agent's Sub-agents section
+- [ ] A "New sub-agent" action opens the standard agent-create form and, on save, attaches the newly created agent to the parent automatically
+- [ ] A parent agent can have between 0 and 10 attached sub-agents, and attaching an 11th is rejected with an inline error
+- [ ] Attaching an agent to itself, or creating a cycle (A→B then B→A), is rejected with a specific error and no link is created
+- [ ] Sending a message containing `@handle` invokes the matching sub-agent as a separate call using that child agent's own system prompt, provider, and model
+- [ ] The sub-agent's reply appears as a distinct turn labeled with its alias/name before the parent agent's synthesized reply
+- [ ] The parent agent's final reply is produced with the sub-agent's reply available as context for the same turn
+- [ ] Mentioning multiple sub-agents invokes each once in mention order, capped at 3 per turn, with additional mentions ignored via an inline notice
+- [ ] An @handle that matches no attached sub-agent is treated as plain text with an inline notice, and the parent turn still completes
+- [ ] A delegated sub-agent call neither reads nor writes the parent conversation's long-term memory (stateless delegation)
+- [ ] When a sub-agent call fails, its turn is marked "error" with a retry and the parent does not synthesize until the delegation is resolved
+- [ ] Reordering, editing the alias of, and detaching sub-agents persists across reload, and detaching leaves both agents otherwise intact
+- [ ] All sub-agent UI strings render in both English and Português (Brasil)
+
 ### Cross-Feature Integration
 - [ ] Agents created in F02 successfully use the LLM provider clients and default keys configured in F01 when chatting in F07
 - [ ] Skills created in F03 appear in the F04 attachment picker, and their instruction bodies are concatenated into the F07 composed prompt in the attachment order maintained by F04
@@ -615,3 +684,6 @@ graph TD
 - [ ] Provider/model selected per agent in F02 overrides the F01 defaults when F07 dispatches a request
 - [ ] The active locale from F09 propagates into the F07 prompt as a response-language directive and selects the F05 template variant shown to the user
 - [ ] The login/sign-up routes and authenticated app shell from F10 mount correctly into F01's routing and layout, with the post-login shell rendering the standard left navigation
+- [ ] A sub-agent invoked via @mention (F11) dispatches using the child agent's provider, model, and optional per-agent key defined in F02
+- [ ] The sub-agent attachment list (F11) reuses the F04 ordered many-to-many pattern and invokes sub-agents respecting their attachment/mention order
+- [ ] A delegated turn (F11) composes and streams the parent's final reply through the F07 chat runtime, with the sub-agent reply included in the composed prompt as context

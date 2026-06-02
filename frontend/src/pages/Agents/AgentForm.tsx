@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/select";
 import { DeleteAgentDialog } from "./DeleteAgentDialog";
 import { AgentSkillsPanel } from "./AgentSkillsPanel";
+import { SubagentsSection } from "./SubagentsSection";
 
 const PROVIDER_LABELS: Record<ProviderName, string> = {
   anthropic: "Anthropic",
@@ -338,6 +339,8 @@ export function AgentForm() {
         </Field>
 
         {editing && id && <AgentSkillsPanel agentId={id} />}
+
+        {editing && id && <SubagentsSection agentId={id} />}
 
         {editing && (
           <div className="rounded-md border border-border">

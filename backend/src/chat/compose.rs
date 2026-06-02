@@ -10,6 +10,37 @@ pub struct Composed {
     pub messages: Vec<ChatMessage>,
 }
 
+/// One sub-agent reply to splice into the parent's system prompt (F11).
+#[derive(Debug, Clone)]
+pub struct SubagentReply {
+    pub alias: String,
+    pub name: String,
+    pub content: String,
+}
+
+/// Append the "Sub-agent responses" block to the parent's base system prompt so
+/// the parent can synthesize over the delegated replies. Returns `base_system`
+/// unchanged when there are no replies.
+pub fn append_subagent_responses(base_system: &str, replies: &[SubagentReply]) -> String {
+    if replies.is_empty() {
+        return base_system.to_string();
+    }
+    let mut s = String::with_capacity(base_system.len() + 256);
+    s.push_str(base_system);
+    s.push_str(
+        "\n\n# Sub-agent responses\nYou delegated parts of this turn to your sub-agents. Their replies follow; use them to inform your answer.\n",
+    );
+    for r in replies {
+        s.push_str(&format!(
+            "\n## @{alias} ({name})\n{content}\n",
+            alias = r.alias,
+            name = r.name,
+            content = r.content,
+        ));
+    }
+    s
+}
+
 /// Build the final prompt from the agent+skills system text and the F08 memory
 /// block, reducing memory until it fits the model's character budget.
 ///
@@ -155,6 +186,34 @@ mod tests {
         let out = compose("SYS", &b, 40, 0).unwrap();
         // Must always keep the trailing user turn.
         assert_eq!(out.messages.last().unwrap().content, "cccc");
+    }
+
+    #[test]
+    fn appends_context_block() {
+        let replies = vec![
+            SubagentReply {
+                alias: "code-reviewer".into(),
+                name: "Code Reviewer".into(),
+                content: "found a null deref".into(),
+            },
+            SubagentReply {
+                alias: "tester".into(),
+                name: "Tester".into(),
+                content: "all green".into(),
+            },
+        ];
+        let out = append_subagent_responses("BASE", &replies);
+        assert!(out.starts_with("BASE"));
+        assert!(out.contains("# Sub-agent responses"));
+        assert!(out.contains("## @code-reviewer (Code Reviewer)"));
+        assert!(out.contains("found a null deref"));
+        assert!(out.contains("## @tester (Tester)"));
+        assert!(out.contains("all green"));
+    }
+
+    #[test]
+    fn no_subagent_block_when_no_replies() {
+        assert_eq!(append_subagent_responses("BASE", &[]), "BASE");
     }
 
     #[test]

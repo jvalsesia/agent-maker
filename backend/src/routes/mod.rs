@@ -5,13 +5,14 @@ pub mod conversations;
 pub mod memory;
 pub mod settings;
 pub mod skills;
+pub mod subagents;
 pub mod templates;
 
 use crate::{
     agents::AgentsService, auth::{AuthState, require_auth}, chat::ChatService,
     conversations::ConversationsService, llm::ProviderRegistry, memory::MemoryService,
     settings::SettingsService, skill_attachments::AttachmentsService, skills::SkillsService,
-    templates::TemplatesService,
+    subagents::SubagentsService, templates::TemplatesService,
 };
 use axum::{
     Router,
@@ -31,6 +32,7 @@ pub struct AppState {
     pub templates: TemplatesService,
     pub conversations: ConversationsService,
     pub memory: MemoryService,
+    pub subagents: SubagentsService,
     pub chat: ChatService,
     pub auth: AuthState,
 }
@@ -43,6 +45,7 @@ pub fn router(state: Arc<AppState>, cors_allowed_origin: Option<String>) -> Rout
         .merge(templates::routes())
         .merge(conversations::routes())
         .merge(memory::routes())
+        .merge(subagents::routes())
         .merge(chat::routes())
         .merge(settings::routes())
         .layer(from_fn_with_state(state.auth.clone(), require_auth));

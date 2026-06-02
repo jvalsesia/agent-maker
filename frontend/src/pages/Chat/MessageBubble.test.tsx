@@ -38,6 +38,21 @@ describe("MessageBubble", () => {
     expect(onRetry).toHaveBeenCalled();
   });
 
+  it("renders a delegated turn as a labeled sub-agent bubble", () => {
+    render(
+      <MessageBubble
+        message={msg({ content: "found a null deref", subagent_alias: "code-reviewer" })}
+      />,
+    );
+    expect(screen.getByText("@code-reviewer")).toBeInTheDocument();
+    expect(screen.getByText(/found a null deref/)).toBeInTheDocument();
+  });
+
+  it("shows a consulted-count chip on a parent reply", () => {
+    render(<MessageBubble message={msg({ content: "synthesis" })} consultedCount={2} />);
+    expect(screen.getByText(/Consulted 2 sub-agents/)).toBeInTheDocument();
+  });
+
   it("expands recalled earlier turns", () => {
     render(
       <MessageBubble

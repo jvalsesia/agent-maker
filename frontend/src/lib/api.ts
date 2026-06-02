@@ -214,6 +214,24 @@ export const api = {
   getComposePreview: (agentId: string) =>
     request<ComposePreview>("GET", `/api/agents/${agentId}/compose`),
 
+  // ----- Sub-agents (F11) -----
+  listSubagents: (agentId: string) =>
+    request<{ attached: AttachedSubagent[] }>("GET", `/api/agents/${agentId}/subagents`),
+  attachSubagent: (agentId: string, input: AttachSubagentInput) =>
+    request<{ attached: AttachedSubagent }>("POST", `/api/agents/${agentId}/subagents`, input),
+  updateSubagent: (agentId: string, childId: string, input: UpdateSubagentInput) =>
+    request<{ attached: AttachedSubagent }>(
+      "PUT",
+      `/api/agents/${agentId}/subagents/${childId}`,
+      input,
+    ),
+  reorderSubagents: (agentId: string, ordered_child_ids: string[]) =>
+    request<{ attached: AttachedSubagent[] }>("PUT", `/api/agents/${agentId}/subagents`, {
+      ordered_child_ids,
+    }),
+  detachSubagent: (agentId: string, childId: string) =>
+    request<void>("DELETE", `/api/agents/${agentId}/subagents/${childId}`),
+
   // ----- Conversations (F06) -----
   listConversations: (agentId: string) =>
     request<{ conversations: Conversation[] }>(
@@ -333,6 +351,10 @@ export interface Message {
   model: string | null;
   token_count: number | null;
   finish_reason?: string | null;
+  /** Non-null marks a delegated (F11) sub-agent turn; the `@handle` label. */
+  subagent_alias?: string | null;
+  /** The child agent that produced a delegated turn (F11). */
+  subagent_agent_id?: string | null;
   created_at: string;
   recalled?: RecalledRef[];
 }
@@ -356,6 +378,17 @@ export type ChatStreamEvent =
       degraded: boolean;
       degraded_reason?: string | null;
       recalled: ChatRecalledTurn[];
+      notices?: SubagentNotice[];
+    }
+  | {
+      type: "subagent";
+      message_id: string;
+      alias: string;
+      agent_id: string;
+      agent_name: string;
+      content: string;
+      status: "complete" | "error";
+      error?: string;
     }
   | { type: "chunk"; content: string }
   | { type: "done"; status: "complete" | "stopped"; token_count: number; finish_reason?: string | null }
@@ -440,6 +473,33 @@ export interface ComposePreview {
   model_context_chars: number;
   fraction: number;
   warning: string | null;
+}
+
+// ----- Sub-agent types (F11) -----
+
+export interface AttachedSubagent {
+  child_id: string;
+  name: string;
+  alias: string;
+  description: string | null;
+  position: number;
+}
+
+export interface AttachSubagentInput {
+  child_id: string;
+  alias?: string;
+  description?: string;
+}
+
+export interface UpdateSubagentInput {
+  alias?: string;
+  description?: string;
+}
+
+/** A `@mention`-handling notice surfaced on the chat `meta` frame. */
+export interface SubagentNotice {
+  code: "overflow" | "unknown";
+  aliases: string[];
 }
 
 // ----- Skills types (F03) -----
