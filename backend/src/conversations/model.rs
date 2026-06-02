@@ -23,6 +23,12 @@ pub struct Message {
     pub model: Option<String>,
     pub token_count: Option<i32>,
     pub finish_reason: Option<String>,
+    /// Non-null marks a delegated (F11) sub-agent turn; the `@handle` shown as
+    /// the bubble label. Null for ordinary user/assistant turns.
+    pub subagent_alias: Option<String>,
+    /// The child agent that produced a delegated turn (`ON DELETE SET NULL`, so
+    /// the historical turn survives if the child agent is later deleted).
+    pub subagent_agent_id: Option<Uuid>,
     pub created_at: DateTime<Utc>,
     /// Earlier turns recalled by F08 for this (assistant) message. Empty for
     /// user messages and assistant turns composed without retrieval. Not a
@@ -59,14 +65,54 @@ pub struct NewMessage<'a> {
     pub model: Option<&'a str>,
     pub token_count: Option<i32>,
     pub finish_reason: Option<&'a str>,
+    pub subagent_alias: Option<&'a str>,
+    pub subagent_agent_id: Option<Uuid>,
 }
 
 impl<'a> NewMessage<'a> {
     pub fn user(content: &'a str) -> Self {
-        Self { role: "user", content, status: "complete", model: None, token_count: None, finish_reason: None }
+        Self {
+            role: "user",
+            content,
+            status: "complete",
+            model: None,
+            token_count: None,
+            finish_reason: None,
+            subagent_alias: None,
+            subagent_agent_id: None,
+        }
     }
     pub fn assistant(content: &'a str, status: &'a str, model: Option<&'a str>) -> Self {
-        Self { role: "assistant", content, status, model, token_count: None, finish_reason: None }
+        Self {
+            role: "assistant",
+            content,
+            status,
+            model,
+            token_count: None,
+            finish_reason: None,
+            subagent_alias: None,
+            subagent_agent_id: None,
+        }
+    }
+    /// A delegated (F11) sub-agent reply, persisted as an `assistant` turn marked
+    /// with the alias used and the child agent that produced it.
+    pub fn subagent(
+        content: &'a str,
+        status: &'a str,
+        model: Option<&'a str>,
+        alias: &'a str,
+        child_id: Uuid,
+    ) -> Self {
+        Self {
+            role: "assistant",
+            content,
+            status,
+            model,
+            token_count: None,
+            finish_reason: None,
+            subagent_alias: Some(alias),
+            subagent_agent_id: Some(child_id),
+        }
     }
 }
 

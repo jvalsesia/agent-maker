@@ -137,7 +137,7 @@ impl ConversationsService {
         let conversation = self.get(id).await?;
         let mut messages: Vec<Message> = sqlx::query_as(
             r#"SELECT id, conversation_id, role, content, status, model, token_count,
-                      finish_reason, created_at
+                      finish_reason, subagent_alias, subagent_agent_id, created_at
                FROM messages
                WHERE conversation_id = $1
                ORDER BY created_at ASC, id ASC"#,
@@ -202,10 +202,11 @@ impl ConversationsService {
 
         let inserted: Message = sqlx::query_as(
             r#"INSERT INTO messages
-                 (conversation_id, role, content, status, model, token_count, finish_reason)
-               VALUES ($1, $2, $3, $4, $5, $6, $7)
+                 (conversation_id, role, content, status, model, token_count, finish_reason,
+                  subagent_alias, subagent_agent_id)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
                RETURNING id, conversation_id, role, content, status, model, token_count,
-                         finish_reason, created_at"#,
+                         finish_reason, subagent_alias, subagent_agent_id, created_at"#,
         )
         .bind(conversation_id)
         .bind(m.role)
@@ -214,6 +215,8 @@ impl ConversationsService {
         .bind(m.model)
         .bind(m.token_count)
         .bind(m.finish_reason)
+        .bind(m.subagent_alias)
+        .bind(m.subagent_agent_id)
         .fetch_one(&mut *tx)
         .await?;
 
@@ -269,7 +272,7 @@ impl ConversationsService {
                SET content = $2, status = $3, token_count = $4, finish_reason = $5
                WHERE id = $1
                RETURNING id, conversation_id, role, content, status, model, token_count,
-                         finish_reason, created_at"#,
+                         finish_reason, subagent_alias, subagent_agent_id, created_at"#,
         )
         .bind(id)
         .bind(content)
@@ -285,7 +288,7 @@ impl ConversationsService {
     pub async fn last_message(&self, conversation_id: Uuid) -> AppResult<Option<Message>> {
         let row: Option<Message> = sqlx::query_as(
             r#"SELECT id, conversation_id, role, content, status, model, token_count,
-                      finish_reason, created_at
+                      finish_reason, subagent_alias, subagent_agent_id, created_at
                FROM messages
                WHERE conversation_id = $1
                ORDER BY created_at DESC, id DESC

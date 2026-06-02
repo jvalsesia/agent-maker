@@ -31,6 +31,15 @@ pub struct RecalledTurn {
     pub similarity: f32,
 }
 
+/// An inline notice about `@mention` handling, surfaced on the `meta` frame for
+/// the client to localize. `code` is `"overflow"` (matched aliases ignored past
+/// the per-turn cap) or `"unknown"` (handles matching no attached sub-agent).
+#[derive(Debug, Clone, Serialize)]
+pub struct SubagentNotice {
+    pub code: String,
+    pub aliases: Vec<String>,
+}
+
 /// One frame of the chat SSE stream. Serialized as `{ "type": "...", ... }`.
 #[derive(Debug, Clone, Serialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
@@ -43,6 +52,21 @@ pub enum StreamEvent {
         #[serde(skip_serializing_if = "Option::is_none")]
         degraded_reason: Option<String>,
         recalled: Vec<RecalledTurn>,
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        notices: Vec<SubagentNotice>,
+    },
+    /// A completed delegated (F11) sub-agent turn, emitted once per honored
+    /// mention before the parent's `chunk` frames.
+    Subagent {
+        message_id: Uuid,
+        alias: String,
+        agent_id: Uuid,
+        agent_name: String,
+        content: String,
+        /// `"complete"` or `"error"`.
+        status: String,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        error: Option<String>,
     },
     Chunk {
         content: String,
