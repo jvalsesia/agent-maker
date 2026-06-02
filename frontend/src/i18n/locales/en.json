@@ -287,7 +287,8 @@
       "placeholder": "Send a message…  (Enter to send, Shift+Enter for newline)",
       "ariaMessage": "Message",
       "ariaSend": "Send",
-      "ariaStop": "Stop"
+      "ariaStop": "Stop",
+      "mentionAria": "Sub-agent suggestions"
     },
     "bubble": {
       "providerFailed": "The provider call failed.",
@@ -310,6 +311,14 @@
       "embeddedTurns": "Embedded turns:",
       "clearButton": "Clear memory",
       "clearing": "Clearing…"
+    },
+    "subagent": {
+      "tag": "sub-agent",
+      "consulted_one": "Consulted {{count}} sub-agent",
+      "consulted_other": "Consulted {{count}} sub-agents",
+      "failed": "This sub-agent's call failed. Retry the turn to try again.",
+      "noticeUnknown": "No attached sub-agent matches: @{{aliases}}. Sent as plain text.",
+      "noticeOverflow": "At most 3 sub-agents run per turn; ignored: @{{aliases}}."
     }
   },
   "templates": {

@@ -287,7 +287,8 @@
       "placeholder": "Envie uma mensagem…  (Enter para enviar, Shift+Enter para nova linha)",
       "ariaMessage": "Mensagem",
       "ariaSend": "Enviar",
-      "ariaStop": "Parar"
+      "ariaStop": "Parar",
+      "mentionAria": "Sugestões de subagentes"
     },
     "bubble": {
       "providerFailed": "A chamada ao provedor falhou.",
@@ -310,6 +311,14 @@
       "embeddedTurns": "Turnos incorporados:",
       "clearButton": "Limpar memória",
       "clearing": "Limpando…"
+    },
+    "subagent": {
+      "tag": "subagente",
+      "consulted_one": "Consultou {{count}} subagente",
+      "consulted_other": "Consultou {{count}} subagentes",
+      "failed": "A chamada deste subagente falhou. Tente o turno novamente.",
+      "noticeUnknown": "Nenhum subagente vinculado corresponde a: @{{aliases}}. Enviado como texto comum.",
+      "noticeOverflow": "No máximo 3 subagentes por turno; ignorados: @{{aliases}}."
     }
   },
   "templates": {

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { renderHook, waitFor, act } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import {
   useAttachedSubagents,
   useAttachSubagent,
@@ -28,8 +28,7 @@ describe("useSubagents", () => {
   it("lists attached sub-agents", async () => {
     const client = makeQueryClient();
     const { result } = renderHook(() => useAttachedSubagents(AGENT_ID), {
-      wrapper: ({ children }: { children: ReactNode }) =>
-        createElement(Wrap, { client }, children),
+      wrapper: ({ children }: { children: ReactNode }) => <Wrap client={client}>{children}</Wrap>,
     });
     await waitFor(() => expect(result.current.data?.attached).toHaveLength(1));
     expect(result.current.data?.attached[0].alias).toBe("code-reviewer");
@@ -51,7 +50,7 @@ describe("useSubagents", () => {
     const client = makeQueryClient();
     const { result } = renderHook(
       () => ({ list: useAttachedSubagents(AGENT_ID), attach: useAttachSubagent(AGENT_ID) }),
-      { wrapper: ({ children }: { children: ReactNode }) => createElement(Wrap, { client }, children) },
+      { wrapper: ({ children }: { children: ReactNode }) => <Wrap client={client}>{children}</Wrap> },
     );
     await waitFor(() => expect(result.current.list.data?.attached).toHaveLength(0));
 
@@ -80,7 +79,7 @@ describe("useSubagents", () => {
     const client = makeQueryClient();
     const { result } = renderHook(
       () => ({ list: useAttachedSubagents(AGENT_ID), detach: useDetachSubagent(AGENT_ID) }),
-      { wrapper: ({ children }: { children: ReactNode }) => createElement(Wrap, { client }, children) },
+      { wrapper: ({ children }: { children: ReactNode }) => <Wrap client={client}>{children}</Wrap> },
     );
     await waitFor(() => expect(result.current.list.data?.attached).toHaveLength(1));
 

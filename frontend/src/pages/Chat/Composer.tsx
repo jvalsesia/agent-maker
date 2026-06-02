@@ -1,4 +1,4 @@
-import { useEffect, useRef, type KeyboardEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { Send, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,20 +8,61 @@ import { useDrafts } from "@/hooks/useDrafts";
 interface Props {
   conversationId: string;
   streaming: boolean;
+  /** Attached sub-agent handles (F11) powering `@`-autocomplete. */
+  aliases?: string[];
   onSend: (content: string) => void;
   onStop: () => void;
 }
 
+interface Mention {
+  /** Index of the `@` in the draft. */
+  start: number;
+  /** The partial handle typed after `@`. */
+  query: string;
+  /** Caret position when the mention context was computed. */
+  caret: number;
+}
+
+/** Find the `@handle` being typed at the caret, if any. A mention starts at the
+ *  beginning of the text or after whitespace, with only `[a-z0-9-]` after `@`. */
+function mentionAt(text: string, caret: number): Mention | null {
+  let i = caret - 1;
+  while (i >= 0) {
+    const ch = text[i];
+    if (ch === "@") {
+      const boundary = i === 0 || /\s/.test(text[i - 1]);
+      return boundary ? { start: i, query: text.slice(i + 1, caret), caret } : null;
+    }
+    if (!/[a-zA-Z0-9-]/.test(ch)) return null;
+    i--;
+  }
+  return null;
+}
+
+const MAX_SUGGESTIONS = 6;
+
 /**
  * Chat input: Enter sends, Shift+Enter inserts a newline, Cmd/Ctrl+K focuses.
- * While a reply streams, the send button becomes a Stop button and sending is
- * blocked with an inline notice. The draft is preserved per conversation.
+ * Typing `@` surfaces an autocomplete of the agent's attached sub-agent handles;
+ * Up/Down navigate, Enter/Tab accept, Esc dismisses. While a reply streams, the
+ * send button becomes a Stop button. The draft is preserved per conversation.
  */
-export function Composer({ conversationId, streaming, onSend, onStop }: Props) {
+export function Composer({ conversationId, streaming, aliases = [], onSend, onStop }: Props) {
   const { t } = useTranslation();
   const { getDraft, setDraft } = useDrafts();
   const ref = useRef<HTMLTextAreaElement>(null);
   const draft = getDraft(conversationId);
+
+  const [mention, setMention] = useState<Mention | null>(null);
+  const [active, setActive] = useState(0);
+
+  const suggestions = useMemo(() => {
+    if (!mention) return [];
+    const q = mention.query.toLowerCase();
+    return aliases.filter((a) => a.toLowerCase().startsWith(q)).slice(0, MAX_SUGGESTIONS);
+  }, [mention, aliases]);
+
+  const menuOpen = suggestions.length > 0;
 
   useEffect(() => {
     const onKey = (e: globalThis.KeyboardEvent) => {
@@ -34,14 +75,67 @@ export function Composer({ conversationId, streaming, onSend, onStop }: Props) {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  function refresh(value: string, caret: number) {
+    const m = aliases.length ? mentionAt(value, caret) : null;
+    setMention(m);
+    setActive(0);
+  }
+
+  function onChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
+    const value = e.target.value;
+    setDraft(conversationId, value);
+    const caret = e.target.selectionStart || value.length;
+    refresh(value, caret);
+  }
+
+  function accept(alias: string) {
+    if (!mention) return;
+    const before = draft.slice(0, mention.start);
+    const after = draft.slice(mention.caret);
+    const next = `${before}@${alias} ${after}`;
+    setDraft(conversationId, next);
+    setMention(null);
+    const caret = mention.start + alias.length + 2;
+    requestAnimationFrame(() => {
+      const el = ref.current;
+      if (el) {
+        el.focus();
+        el.setSelectionRange(caret, caret);
+      }
+    });
+  }
+
   function submit() {
     const text = draft.trim();
     if (!text || streaming) return;
     onSend(text);
     setDraft(conversationId, "");
+    setMention(null);
   }
 
   function onKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
+    if (menuOpen) {
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setActive((a) => (a + 1) % suggestions.length);
+        return;
+      }
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setActive((a) => (a - 1 + suggestions.length) % suggestions.length);
+        return;
+      }
+      if (e.key === "Enter" || e.key === "Tab") {
+        e.preventDefault();
+        accept(suggestions[active]);
+        return;
+      }
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setMention(null);
+        return;
+      }
+    }
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       submit();
@@ -55,13 +149,39 @@ export function Composer({ conversationId, streaming, onSend, onStop }: Props) {
           {t("chat.composer.generating")}
         </p>
       )}
-      <div className="flex items-end gap-2">
+      <div className="relative flex items-end gap-2">
+        {menuOpen && (
+          <ul
+            role="listbox"
+            aria-label={t("chat.composer.mentionAria")}
+            className="absolute bottom-full left-0 z-10 mb-1 w-64 overflow-hidden rounded-md border border-border bg-popover shadow-md"
+          >
+            {suggestions.map((alias, i) => (
+              <li key={alias}>
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={i === active}
+                  className={`flex w-full items-center px-3 py-1.5 text-left text-sm ${
+                    i === active ? "bg-accent text-accent-foreground" : ""
+                  }`}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    accept(alias);
+                  }}
+                >
+                  <span className="font-mono">@{alias}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
         <Textarea
           ref={ref}
           aria-label={t("chat.composer.ariaMessage")}
           placeholder={t("chat.composer.placeholder")}
           value={draft}
-          onChange={(e) => setDraft(conversationId, e.target.value)}
+          onChange={onChange}
           onKeyDown={onKeyDown}
           rows={3}
           className="resize-none"

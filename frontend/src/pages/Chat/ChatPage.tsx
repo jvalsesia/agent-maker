@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { ArrowLeft } from "lucide-react";
 import { useConversations, useMessages } from "@/hooks/useConversations";
 import { useChat } from "@/hooks/useChat";
+import { useAttachedSubagents } from "@/hooks/useSubagents";
 import { DraftsProvider } from "@/hooks/useDrafts";
 import { ConversationSidebar } from "./ConversationSidebar";
 import { MessageList } from "./MessageList";
@@ -77,10 +78,12 @@ function ChatSurface({
 }) {
   const { t } = useTranslation();
   const { data, isLoading, error, refetch } = useMessages(activeId ?? undefined);
-  const { streaming, assistant, pendingUser, send, retry, stop } = useChat(
+  const { streaming, assistant, subagents, notices, pendingUser, send, retry, stop } = useChat(
     activeId ?? undefined,
     agentId,
   );
+  const { data: subagentData } = useAttachedSubagents(agentId);
+  const aliases = (subagentData?.attached ?? []).map((s) => s.alias);
 
   if (loadingList) {
     return <p className="p-6 text-sm text-muted-foreground">{t("common.loading")}</p>;
@@ -101,12 +104,15 @@ function ChatSurface({
         error={error}
         onReload={() => refetch()}
         draft={assistant}
+        subagentDrafts={subagents}
+        notices={notices}
         pendingUser={pendingUser}
         onRetryTurn={retry}
       />
       <Composer
         conversationId={activeId}
         streaming={streaming}
+        aliases={aliases}
         onSend={send}
         onStop={stop}
       />

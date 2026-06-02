@@ -1,6 +1,12 @@
 import { useCallback, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { ApiError, chatStream, type ChatRecalledTurn, type ChatStartInput } from "@/lib/api";
+import {
+  ApiError,
+  chatStream,
+  type ChatRecalledTurn,
+  type ChatStartInput,
+  type SubagentNotice,
+} from "@/lib/api";
 import { useLocale } from "./useLocale";
 import { conversationsKey, messagesKey } from "./useConversations";
 
@@ -10,6 +16,16 @@ export interface DraftAssistant {
   recalled: ChatRecalledTurn[];
   degraded: boolean;
   model: string | null;
+}
+
+/** A completed delegated (F11) sub-agent reply, streamed before the parent. */
+export interface SubagentDraft {
+  message_id: string;
+  alias: string;
+  agent_name: string;
+  content: string;
+  status: "complete" | "error";
+  error?: string;
 }
 
 export interface ChatError {
@@ -31,6 +47,8 @@ export function useChat(conversationId: string | undefined, agentId: string) {
   const locale = useLocale();
   const [streaming, setStreaming] = useState(false);
   const [assistant, setAssistant] = useState<DraftAssistant | null>(null);
+  const [subagents, setSubagents] = useState<SubagentDraft[]>([]);
+  const [notices, setNotices] = useState<SubagentNotice[]>([]);
   const [pendingUser, setPendingUser] = useState<string | null>(null);
   const [error, setError] = useState<ChatError | null>(null);
   const ctrl = useRef<AbortController | null>(null);
@@ -42,6 +60,8 @@ export function useChat(conversationId: string | undefined, agentId: string) {
       setStreaming(true);
       setPendingUser(optimisticUser);
       setAssistant({ ...EMPTY_DRAFT });
+      setSubagents([]);
+      setNotices([]);
 
       const controller = new AbortController();
       ctrl.current = controller;
@@ -56,6 +76,19 @@ export function useChat(conversationId: string | undefined, agentId: string) {
               degraded: ev.degraded,
               model: ev.model,
             }));
+            if (ev.notices?.length) setNotices(ev.notices);
+          } else if (ev.type === "subagent") {
+            setSubagents((prev) => [
+              ...prev,
+              {
+                message_id: ev.message_id,
+                alias: ev.alias,
+                agent_name: ev.agent_name,
+                content: ev.content,
+                status: ev.status,
+                error: ev.error,
+              },
+            ]);
           } else if (ev.type === "chunk") {
             setAssistant((a) => ({ ...(a ?? EMPTY_DRAFT), content: (a?.content ?? "") + ev.content }));
           } else if (ev.type === "error") {
@@ -80,6 +113,8 @@ export function useChat(conversationId: string | undefined, agentId: string) {
         await qc.invalidateQueries({ queryKey: messagesKey(conversationId) });
         qc.invalidateQueries({ queryKey: conversationsKey(agentId) });
         setAssistant(null);
+        setSubagents([]);
+        setNotices([]);
         setPendingUser(null);
       }
     },
@@ -90,5 +125,5 @@ export function useChat(conversationId: string | undefined, agentId: string) {
   const retry = useCallback(() => run({ retry: true }, null), [run]);
   const stop = useCallback(() => ctrl.current?.abort(), []);
 
-  return { streaming, assistant, pendingUser, error, send, retry, stop };
+  return { streaming, assistant, subagents, notices, pendingUser, error, send, retry, stop };
 }

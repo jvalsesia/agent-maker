@@ -3,12 +3,18 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { DraftsProvider } from "@/hooks/useDrafts";
 import { Composer } from "./Composer";
 
-function setup(streaming = false) {
+function setup(streaming = false, aliases?: string[]) {
   const onSend = vi.fn();
   const onStop = vi.fn();
   render(
     <DraftsProvider>
-      <Composer conversationId="c1" streaming={streaming} onSend={onSend} onStop={onStop} />
+      <Composer
+        conversationId="c1"
+        streaming={streaming}
+        aliases={aliases}
+        onSend={onSend}
+        onStop={onStop}
+      />
     </DraftsProvider>,
   );
   return { onSend, onStop };
@@ -46,5 +52,22 @@ describe("Composer", () => {
     expect(screen.getByText(/blocked until it finishes/i)).toBeInTheDocument();
     fireEvent.click(screen.getByLabelText("Stop"));
     expect(onStop).toHaveBeenCalled();
+  });
+
+  it("autocompletes an attached sub-agent handle when typing @", () => {
+    const { onSend } = setup(false, ["code-reviewer", "tester"]);
+    const box = screen.getByLabelText("Message") as HTMLTextAreaElement;
+
+    fireEvent.change(box, { target: { value: "@co" } });
+    // The matching handle is suggested in a listbox.
+    const option = screen.getByRole("option", { name: /code-reviewer/ });
+    expect(option).toBeInTheDocument();
+    // The non-matching handle is filtered out.
+    expect(screen.queryByRole("option", { name: /tester/ })).not.toBeInTheDocument();
+
+    // Enter accepts the suggestion (and does NOT send the message).
+    fireEvent.keyDown(box, { key: "Enter" });
+    expect(onSend).not.toHaveBeenCalled();
+    expect(box.value).toBe("@code-reviewer ");
   });
 });
