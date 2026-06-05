@@ -1,7 +1,8 @@
+import { createRef } from "react";
 import { describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { DraftsProvider } from "@/hooks/useDrafts";
-import { Composer } from "./Composer";
+import { Composer, type ComposerHandle } from "./Composer";
 
 function setup(streaming = false, aliases?: string[]) {
   const onSend = vi.fn();
@@ -69,5 +70,44 @@ describe("Composer", () => {
     fireEvent.keyDown(box, { key: "Enter" });
     expect(onSend).not.toHaveBeenCalled();
     expect(box.value).toBe("@code-reviewer ");
+  });
+
+  it("insertMention splices @alias at the caret (imperative handle)", () => {
+    const ref = createRef<ComposerHandle>();
+    render(
+      <DraftsProvider>
+        <Composer
+          ref={ref}
+          conversationId="c1"
+          streaming={false}
+          onSend={vi.fn()}
+          onStop={vi.fn()}
+        />
+      </DraftsProvider>,
+    );
+    const box = screen.getByLabelText("Message") as HTMLTextAreaElement;
+    fireEvent.change(box, { target: { value: "review this" } });
+    box.setSelectionRange(0, 0); // caret at the start
+    act(() => ref.current!.insertMention("code-reviewer"));
+    expect(box.value).toBe("@code-reviewer review this");
+  });
+
+  it("insertMention does not duplicate an @alias already present", () => {
+    const ref = createRef<ComposerHandle>();
+    render(
+      <DraftsProvider>
+        <Composer
+          ref={ref}
+          conversationId="c1"
+          streaming={false}
+          onSend={vi.fn()}
+          onStop={vi.fn()}
+        />
+      </DraftsProvider>,
+    );
+    const box = screen.getByLabelText("Message") as HTMLTextAreaElement;
+    fireEvent.change(box, { target: { value: "@code-reviewer take a look" } });
+    act(() => ref.current!.insertMention("code-reviewer"));
+    expect(box.value).toBe("@code-reviewer take a look");
   });
 });

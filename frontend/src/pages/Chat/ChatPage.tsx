@@ -1,15 +1,15 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { ArrowLeft } from "lucide-react";
 import { useConversations, useMessages } from "@/hooks/useConversations";
 import { useChat } from "@/hooks/useChat";
 import { useAttachedSubagents } from "@/hooks/useSubagents";
-import type { AttachedSubagent } from "@/lib/api";
 import { DraftsProvider } from "@/hooks/useDrafts";
 import { ConversationSidebar } from "./ConversationSidebar";
 import { MessageList } from "./MessageList";
-import { Composer } from "./Composer";
+import { Composer, type ComposerHandle } from "./Composer";
+import { SubagentBar } from "./SubagentBar";
 
 export function ChatPage() {
   const { id: agentId } = useParams<{ id: string }>();
@@ -86,6 +86,7 @@ function ChatSurface({
   const { data: subagentData } = useAttachedSubagents(agentId);
   const attachedSubagents = subagentData?.attached ?? [];
   const aliases = attachedSubagents.map((s) => s.alias);
+  const composerRef = useRef<ComposerHandle>(null);
 
   if (loadingList) {
     return <p className="p-6 text-sm text-muted-foreground">{t("common.loading")}</p>;
@@ -111,8 +112,12 @@ function ChatSurface({
         pendingUser={pendingUser}
         onRetryTurn={retry}
       />
-      <SubagentBar subagents={attachedSubagents} />
+      <SubagentBar
+        agentId={agentId}
+        onPick={(alias) => composerRef.current?.insertMention(alias)}
+      />
       <Composer
+        ref={composerRef}
         conversationId={activeId}
         streaming={streaming}
         aliases={aliases}
@@ -120,24 +125,5 @@ function ChatSurface({
         onStop={stop}
       />
     </>
-  );
-}
-
-function SubagentBar({ subagents }: { subagents: AttachedSubagent[] }) {
-  const { t } = useTranslation();
-  if (subagents.length === 0) return null;
-  return (
-    <div className="flex flex-wrap items-center gap-1.5 border-t border-border px-4 pt-2 text-xs text-muted-foreground">
-      <span className="shrink-0">{t("chat.subagentBar.label")}</span>
-      {subagents.map((s) => (
-        <span
-          key={s.child_id}
-          title={s.description ? `${s.name} — ${s.description}` : s.name}
-          className="rounded bg-muted px-1.5 py-0.5 font-mono text-foreground"
-        >
-          @{s.alias}
-        </span>
-      ))}
-    </div>
   );
 }

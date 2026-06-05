@@ -1,4 +1,12 @@
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent,
+} from "react";
 import { useTranslation } from "react-i18next";
 import { Send, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,6 +20,29 @@ interface Props {
   aliases?: string[];
   onSend: (content: string) => void;
   onStop: () => void;
+}
+
+/** Imperative API exposed to siblings (e.g. the chat sub-agents bar) so they can
+ *  drive caret-accurate `@handle` insertion using the composer's own textarea. */
+export interface ComposerHandle {
+  /** Insert `@alias ` at the caret (or end of draft if unfocused) and refocus.
+   *  No-op for the splice when the exact `@alias` token is already present. */
+  insertMention(alias: string): void;
+}
+
+/** Word-bounded position just after an existing `@alias` token in `text`, or -1. */
+function existingMentionEnd(text: string, alias: string): number {
+  const token = `@${alias}`;
+  let from = 0;
+  for (;;) {
+    const at = text.indexOf(token, from);
+    if (at < 0) return -1;
+    const before = at === 0 || /\s/.test(text[at - 1]);
+    const nextCh = text[at + token.length];
+    const after = nextCh === undefined || !/[a-zA-Z0-9-]/.test(nextCh);
+    if (before && after) return at + token.length;
+    from = at + token.length;
+  }
 }
 
 interface Mention {
@@ -47,14 +78,48 @@ const MAX_SUGGESTIONS = 6;
  * Up/Down navigate, Enter/Tab accept, Esc dismisses. While a reply streams, the
  * send button becomes a Stop button. The draft is preserved per conversation.
  */
-export function Composer({ conversationId, streaming, aliases = [], onSend, onStop }: Props) {
+export const Composer = forwardRef<ComposerHandle, Props>(function Composer(
+  { conversationId, streaming, aliases = [], onSend, onStop },
+  handleRef,
+) {
   const { t } = useTranslation();
   const { getDraft, setDraft } = useDrafts();
-  const ref = useRef<HTMLTextAreaElement>(null);
+  const taRef = useRef<HTMLTextAreaElement>(null);
   const draft = getDraft(conversationId);
 
   const [mention, setMention] = useState<Mention | null>(null);
   const [active, setActive] = useState(0);
+
+  /** Place the caret at `pos` in the textarea on the next frame, focusing it. */
+  function focusCaret(pos: number) {
+    requestAnimationFrame(() => {
+      const el = taRef.current;
+      if (el) {
+        el.focus();
+        el.setSelectionRange(pos, pos);
+      }
+    });
+  }
+
+  /** Insert (or reuse) an `@alias` mention at the caret. Reused by the chat
+   *  sub-agents bar via the imperative handle and shares `accept()`'s mechanics. */
+  function insertMention(alias: string) {
+    const current = getDraft(conversationId);
+    const dedupeEnd = existingMentionEnd(current, alias);
+    if (dedupeEnd >= 0) {
+      focusCaret(dedupeEnd);
+      return;
+    }
+    const caret = taRef.current?.selectionStart ?? current.length;
+    const before = current.slice(0, caret);
+    const after = current.slice(caret);
+    const next = `${before}@${alias} ${after}`;
+    setDraft(conversationId, next);
+    setMention(null);
+    focusCaret(caret + alias.length + 2);
+  }
+
+  useImperativeHandle(handleRef, () => ({ insertMention }), [conversationId]);
 
   const suggestions = useMemo(() => {
     if (!mention) return [];
@@ -68,7 +133,7 @@ export function Composer({ conversationId, streaming, aliases = [], onSend, onSt
     const onKey = (e: globalThis.KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
-        ref.current?.focus();
+        taRef.current?.focus();
       }
     };
     window.addEventListener("keydown", onKey);
@@ -95,14 +160,7 @@ export function Composer({ conversationId, streaming, aliases = [], onSend, onSt
     const next = `${before}@${alias} ${after}`;
     setDraft(conversationId, next);
     setMention(null);
-    const caret = mention.start + alias.length + 2;
-    requestAnimationFrame(() => {
-      const el = ref.current;
-      if (el) {
-        el.focus();
-        el.setSelectionRange(caret, caret);
-      }
-    });
+    focusCaret(mention.start + alias.length + 2);
   }
 
   function submit() {
@@ -177,7 +235,7 @@ export function Composer({ conversationId, streaming, aliases = [], onSend, onSt
           </ul>
         )}
         <Textarea
-          ref={ref}
+          ref={taRef}
           aria-label={t("chat.composer.ariaMessage")}
           placeholder={t("chat.composer.placeholder")}
           value={draft}
@@ -203,4 +261,4 @@ export function Composer({ conversationId, streaming, aliases = [], onSend, onSt
       </div>
     </div>
   );
-}
+});

@@ -314,7 +314,10 @@
       "clearing": "Clearing…"
     },
     "subagentBar": {
-      "label": "Sub-agents — mention with @:"
+      "label": "Sub-agents — mention with @:",
+      "attach": "Attach sub-agent",
+      "detach": "Detach {{name}}",
+      "empty": "No sub-agents yet — attach one to delegate with @."
     },
     "subagent": {
       "tag": "sub-agent",

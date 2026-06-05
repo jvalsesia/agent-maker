@@ -314,7 +314,10 @@
       "clearing": "Limpando…"
     },
     "subagentBar": {
-      "label": "Subagentes — mencione com @:"
+      "label": "Subagentes — mencione com @:",
+      "attach": "Anexar subagente",
+      "detach": "Remover {{name}}",
+      "empty": "Nenhum subagente ainda — anexe um para delegar com @."
     },
     "subagent": {
       "tag": "subagente",
