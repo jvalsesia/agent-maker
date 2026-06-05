@@ -76,7 +76,7 @@ export function SubagentPicker({
           <DialogDescription>{t("agents.subagentPicker.description")}</DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-3">
+        <div className="min-w-0 space-y-3">
           <Input
             placeholder={t("agents.subagentPicker.searchPlaceholder")}
             value={search}
@@ -109,7 +109,7 @@ export function SubagentPicker({
                     onChange={() => setSelected(a.id)}
                   />
                   <div className="min-w-0">
-                    <div className="text-sm font-medium">{a.name}</div>
+                    <div className="truncate text-sm font-medium">{a.name}</div>
                     <div className="truncate text-xs text-muted-foreground">
                       {isAttached
                         ? t("agents.subagentPicker.alreadyAttached")
