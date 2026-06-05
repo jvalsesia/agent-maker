@@ -1,3 +1,5 @@
+
+
 # F11. Sub-agents — Implementation Plan
 
 ## Prerequisites
@@ -99,3 +101,34 @@
    `Composer`, `MessageBubble`, and `useChat` tests for the delegation path. Run the full
    frontend suite and `cargo test`, then use the `verify` skill to exercise an end-to-end
    `@mention` delegation against the running stack.
+
+## Phase 5 — Extension: interactive sub-agents bar in the chat window
+
+> Frontend-only. Reuses the existing attach/detach endpoints, `useSubagents` hooks, and
+> `SubagentPicker` unchanged — no backend, migration, or API work. See `spec.md` Section 9.
+
+1. **Composer imperative handle** — Convert `src/pages/Chat/Composer.tsx` to
+   `forwardRef<ComposerHandle, Props>` and expose `insertMention(alias)` via
+   `useImperativeHandle`, reusing the existing caret-splice + `requestAnimationFrame`
+   focus/selection logic from `accept()`; dedupe when the exact `@alias` is already present
+   in the draft (per spec §9.4).
+
+2. **Extract the interactive bar** — Create `src/pages/Chat/SubagentBar.tsx` from the inline
+   chip strip in `ChatPage.tsx`: render chips with a per-chip detach control, an "Attach
+   sub-agent" button opening the reused `SubagentPicker` (current agent as parent), wire
+   `useAttachSubagent` / `useDetachSubagent`, and **always render** the bar (show the attach
+   control when empty), removing the prior `if (subagents.length === 0) return null` guard.
+   On attach success, call `onPick(res.attached.alias)`; on a 422 keep the picker open and
+   surface the `ApiError` via `toast.error`, inserting nothing.
+
+3. **Wire ChatPage** — Replace the inline bar with `<SubagentBar agentId={agentId}
+   onPick={(a) => composerRef.current?.insertMention(a)} />`, hold a
+   `useRef<ComposerHandle>`, and pass it to `<Composer ref={composerRef} … />`.
+
+4. **i18n + tests** — Add `chat.subagentBar.attach`, `chat.subagentBar.detach`, and
+   `chat.subagentBar.empty` to `en.json` and `pt-BR.json` (reusing `agents.subagentPicker.*`
+   for the picker). Add the `Composer` insert/dedupe tests and the `SubagentBar`
+   visible-when-empty / attach-inserts / rejection-inserts-nothing / detach tests per spec
+   §9.5; update any shipped test that asserted the bar hides when empty. Run `pnpm
+   typecheck` + `pnpm test`, then `verify` an attach-from-chat → `@handle` inserted → send
+   flow against the running stack.

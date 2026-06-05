@@ -1,4 +1,4 @@
-use agent_maker::{
+    use agent_maker::{
     auth::{AuthConfig, AuthState},
     build_app,
     config::Config,

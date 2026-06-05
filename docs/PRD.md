@@ -147,6 +147,8 @@ agent-maker turns the LEGO metaphor into a real product. Personas (Agents) and r
 - As a user, I want to reorder, rename the alias of, and detach sub-agents, so that I can manage an agent's delegation roster over time
 - As a user, I want to see the sub-agents attached to each agent directly in the agents list, so that I can tell at a glance which agents delegate and to whom without opening each one
 - As a user, I want a list of the current agent's attached sub-agents in the chat window, just above the message composer, so that I know which @handles I can summon before I type
+- As a user, I want to attach a sub-agent directly from the chat window and have its @handle automatically inserted into the message composer, so that I can summon a specialist mid-conversation without leaving the chat
+- As a user, I want to detach a sub-agent directly from the chat window, so that I can prune the current agent's delegation roster in context
 - As the system, I want to reject attachments that would create a delegation cycle and to cap delegation depth, so that agents cannot call each other indefinitely
 
 ## 6. Functionalities
@@ -464,10 +466,16 @@ agent-maker turns the LEGO metaphor into a real product. Personas (Agents) and r
 - Cycle prevention: an agent cannot be attached as its own sub-agent, and an attachment is rejected if it would close a cycle in the agent → sub-agent graph (e.g., A→B then B→A).
 - Depth limit: delegation depth is capped at 2 — a child invoked via delegation does not itself process @mentions in v1, so a single user turn triggers at most one level of delegation.
 - Deleting an agent cascades: it removes every attachment where that agent is a parent or a child, consistent with F04 behavior.
+- The chat window's sub-agents bar is interactive: it can attach and detach sub-agents for the current agent without opening the agent detail view, writing through the same ordered many-to-many attachment as F04 so the change is immediately reflected everywhere the roster is shown (agent detail, agents list, this bar).
+- Attaching a sub-agent from the chat window auto-inserts that sub-agent's `@handle` into the message composer (at the caret, followed by a trailing space), so the just-attached child is pre-mentioned and ready to summon on the next send; if the composer already contains that exact `@handle`, it is not duplicated.
+- Attaching from the chat window enforces the same constraints as the agent detail view (cycle prevention, self-attachment rejection, the 10-sub-agent cap, alias defaulting/uniqueness); a rejected attach surfaces an inline error in the bar and inserts nothing into the composer.
+- Detaching from the chat window removes only the parent → child attachment (both agents are otherwise untouched) and removes the corresponding chip; any `@handle` already typed in the composer is left as-is and is thereafter treated as an unmatched mention per the existing error-handling rule.
 
 **Experience:**
 - The agents list surfaces, on each agent row that has sub-agents, the attached sub-agents as compact @handle chips (each chip shows the alias and reveals the child agent's name on hover), so the delegation roster is visible without opening the agent. Agents with no sub-agents show nothing extra. The list endpoint returns each agent's attached sub-agents (alias + child name) for this purpose.
-- The chat window shows a thin sub-agents bar directly above the message composer listing the current agent's attached sub-agents as @handle chips (with the child name and optional "when to use" hint on hover), so the user sees which handles are summonable before typing; the bar is hidden when the agent has no sub-agents.
+- The chat window shows a thin sub-agents bar directly above the message composer listing the current agent's attached sub-agents as @handle chips (with the child name and optional "when to use" hint on hover), so the user sees which handles are summonable before typing.
+- The sub-agents bar includes an "Attach sub-agent" control (opening the same picker as the agent detail view) and a per-chip detach affordance, so the user can grow or prune the delegation roster from within the conversation. Because the bar can now attach, it remains visible (showing the attach control) even when the agent has no sub-agents yet, instead of being hidden.
+- When the user attaches a sub-agent from this bar, its @handle is inserted into the composer at the caret and the composer regains focus, so the user can continue typing the task immediately after the mention.
 - The agent detail view gains a "Sub-agents" section (parallel to the F04 "Skills" section) listing attached sub-agents with their @handle, the child agent's name, the optional "when to use" hint, drag handles, and a detach control.
 - An "Attach sub-agent" button opens a picker listing all other agents (search + select); a "New sub-agent" action in the same place opens the standard agent-create form (F02) pre-wired so that, on save, the freshly created agent is attached to the parent automatically. On attach, the user can edit the alias and the optional description.
 - Agents that would form a cycle (or the parent itself) appear disabled in the picker with an explanatory tooltip.
@@ -677,7 +685,11 @@ graph TD
 - [ ] When a sub-agent call fails, its turn is marked "error" with a retry and the parent does not synthesize until the delegation is resolved
 - [ ] Reordering, editing the alias of, and detaching sub-agents persists across reload, and detaching leaves both agents otherwise intact
 - [ ] The agents list shows each agent's attached sub-agents as @handle chips, and an agent with no sub-agents shows none; the chips update after attaching or detaching a sub-agent
-- [ ] The chat window displays the current agent's attached sub-agents as @handle chips just above the message composer, and the bar is hidden when the agent has no sub-agents
+- [ ] The chat window displays the current agent's attached sub-agents as @handle chips just above the message composer
+- [ ] The chat window's sub-agents bar provides an "Attach sub-agent" control and a per-chip detach control, and remains visible (showing the attach control) even when the agent has no sub-agents
+- [ ] Attaching a sub-agent from the chat window adds it to the roster and inserts its @handle into the message composer at the caret, with focus returned to the composer; an already-present identical @handle is not duplicated
+- [ ] Attaching from the chat window enforces the same cycle, self-attachment, and 10-sub-agent-cap rules, surfacing an inline error in the bar and inserting nothing into the composer when rejected
+- [ ] Detaching a sub-agent from the chat window removes its chip and the parent → child attachment, leaving both agents otherwise intact, and the change persists across reload
 - [ ] All sub-agent UI strings render in both English and Português (Brasil)
 
 ### Cross-Feature Integration

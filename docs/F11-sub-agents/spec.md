@@ -457,3 +457,138 @@ all new keys, asserted by the existing i18n key-parity test if present).
 rules in Section 6 runtime flow. Experience → Section 4 (frontend components) + Section 6
 flow. Error Handling → Section 5 error codes + Section 6 child-error path. §9 acceptance
 & Cross-Feature Integration → Section 7. Consumes (F02/F04/F07) → Sections 2–6.
+
+---
+
+## Section 9: Extension — Interactive sub-agents bar (chat window)
+
+> **Status:** Extension to the shipped F11. Sections 1–8 are implemented on `main`. This
+> section covers only the delta added by the PRD update that makes the chat-window
+> sub-agents bar *interactive* — attach and detach from within the conversation, with the
+> attached `@handle` auto-inserted into the composer. **Frontend-only: no backend, schema,
+> API, or runtime changes.** Every endpoint, hook, and validation rule from Sections 5–6 is
+> reused verbatim.
+
+### 9.1 Scope of the extension
+
+**Included:**
+- The read-only chip strip rendered today by the inline `SubagentBar` in `ChatPage.tsx`
+  becomes an interactive, extracted component (`src/pages/Chat/SubagentBar.tsx`) that:
+  - lists the current agent's attached sub-agents as `@handle` chips (unchanged), each chip
+    gaining a **detach** affordance;
+  - exposes an **"Attach sub-agent"** control that opens the existing `SubagentPicker`
+    (reused as-is) scoped to the current chat agent as the parent;
+  - **auto-inserts the attached sub-agent's `@handle` into the composer** at the caret, with
+    focus returned to the composer, on a successful attach;
+  - **stays visible even when the agent has no sub-agents** (showing the attach control),
+    reversing the prior `if (subagents.length === 0) return null` hide-when-empty behavior.
+- `Composer.tsx` exposes an imperative `insertMention(alias)` handle (via `forwardRef` +
+  `useImperativeHandle`) so a sibling can drive caret-accurate insertion + focus using the
+  composer's existing textarea ref and `accept()` insertion logic.
+
+**Excluded (unchanged from the shipped feature):**
+- Backend attach/detach/list/reorder endpoints and all attach-time validation (cycle,
+  self-attach, `0..=10` cap, alias format/uniqueness) — reused exactly.
+- Reordering and alias/description inline editing from the chat window — those remain in the
+  agent detail `SubagentsSection` only. The chat bar does **attach + detach** (plus the
+  alias/description fields the picker already offers on attach).
+- The `@`-autocomplete in the composer (already shipped) — untouched here.
+
+### 9.2 Affected components (delta only)
+
+| File Path | New/Modified | Purpose | Key Responsibilities |
+|-----------|--------------|---------|----------------------|
+| `src/pages/Chat/SubagentBar.tsx` | **New** (extracted from inline) | Interactive bar | Render chips + per-chip detach; "Attach sub-agent" → `SubagentPicker`; on attach success call `onPick(alias)`; own picker open-state, mutations, and error toasts; always render (attach control shown when empty) |
+| `src/pages/Chat/Composer.tsx` | Modified | Composer | Convert to `forwardRef<ComposerHandle, Props>`; add `useImperativeHandle` exposing `insertMention(alias)` that reuses the existing caret-splice + `requestAnimationFrame` focus/selection logic; dedupe when the exact `@alias` is already present |
+| `src/pages/Chat/ChatPage.tsx` | Modified | Wiring | Remove the inline `SubagentBar`; hold a `useRef<ComposerHandle>`; render `<SubagentBar agentId={agentId} onPick={(a) => composerRef.current?.insertMention(a)} />` and pass the ref to `<Composer ref={composerRef} … />` |
+| `src/i18n/locales/en.json` / `pt-BR.json` | Modified | i18n | Add `chat.subagentBar.attach`, `chat.subagentBar.detach` (aria), `chat.subagentBar.empty`; reuse existing `agents.subagentPicker.*` for the picker and the `ApiError` message for attach failures |
+
+**Reused as-is (no change):** `src/hooks/useSubagents.ts`
+(`useAttachedSubagents`, `useAttachSubagent`, `useDetachSubagent`),
+`src/pages/Agents/SubagentPicker.tsx`, `src/lib/api.ts` subagent methods and the
+`AttachedSubagent` / `AttachSubagentInput` types, and the `sonner` `toast.error` /
+`ApiError` pattern already used by `SubagentsSection.tsx`.
+
+```mermaid
+graph TD
+    CP[ChatPage] -->|agentId, onPick| SB[SubagentBar]
+    CP -->|ref: ComposerHandle| CMP[Composer]
+    SB --> UAS[useAttachedSubagents]
+    SB --> AT[useAttachSubagent]
+    SB --> DT[useDetachSubagent]
+    SB --> PICK[SubagentPicker reused]
+    AT -->|onSuccess: res.attached.alias| ONPICK["onPick(alias)"]
+    ONPICK --> CMP
+    CMP -->|insertMention| TA["textarea (caret splice + focus)"]
+    AT --> API["POST /api/agents/:id/subagents (existing)"]
+    DT --> APID["DELETE …/subagents/:childId (existing)"]
+```
+
+### 9.3 Technical decisions (delta)
+
+| Decision | Chosen Approach | Alternative | Trade-off |
+|----------|-----------------|-------------|-----------|
+| Bar ↔ composer insertion | `forwardRef` + `useImperativeHandle` exposing `insertMention(alias)` on `Composer`; `ChatPage` wires the ref to the bar's `onPick` | Bar writes the shared `useDrafts` draft directly (append at end) | Imperative handle keeps caret/focus logic where the textarea ref already lives and reuses `accept()`; true caret insertion + focus instead of end-append |
+| Bar location | Extract to `src/pages/Chat/SubagentBar.tsx` owning picker state, mutations, and toasts | Grow the inline component in `ChatPage.tsx` | Keeps `ChatPage` lean; the bar's new stateful concerns are self-contained and unit-testable |
+| Which alias is inserted | Insert the alias from the **attach response** (`res.attached.alias`), inside the mutation's `onSuccess` | Insert the alias the user typed in the picker | The server returns the canonical, defaulted/validated alias (slug of the child name when omitted); inserting the response value means the composer always shows the real `@handle`, and nothing is inserted on rejection |
+| Empty-state visibility | Always render the bar; show the attach control (and an empty hint) when no sub-agents | Keep hide-when-empty, surface attach elsewhere | The attach entry point must be reachable from chat even before the first sub-agent exists; reverses the prior behavior (and its acceptance criterion) |
+| Attach-rejection UX | Picker stays open; surface the `ApiError` message via `toast.error`; insert nothing (insertion is gated on `onSuccess`) | Inline field error inside the picker | Matches the shipped `SubagentsSection` error pattern; "inserts nothing on rejection" falls out of gating insertion on success |
+| Detach vs typed text | `useDetachSubagent`; leave any already-typed `@alias` in the composer untouched | Strip the matching `@alias` from the draft on detach | Per PRD, the now-orphaned mention is handled by the existing unmatched-mention notice (`chat.subagent.noticeUnknown`) at send time; no surprise edits to the user's draft |
+
+### 9.4 `insertMention` behavior (Composer)
+
+`ComposerHandle.insertMention(alias: string)` reuses the existing `accept()` mechanics:
+
+1. Read the current draft and the textarea's caret (`ref.current?.selectionStart`, falling
+   back to draft length when the textarea isn't focused).
+2. **Dedupe:** if the draft already contains the exact token `@${alias}` (word-bounded), do
+   not insert a second copy — just refocus the textarea and place the caret after the
+   existing token. (Satisfies "no duplicate if the exact `@handle` is already present.")
+3. Otherwise splice `@${alias}` + a single trailing space at the caret
+   (`before + "@" + alias + " " + after`), persist via `setDraft(conversationId, next)`.
+4. In `requestAnimationFrame`, focus the textarea and set the selection to
+   `caret + alias.length + 2` (after the inserted handle and its trailing space) — mirroring
+   the existing autocomplete-accept path.
+
+The trailing space ensures the inserted `@handle` is a complete, word-bounded mention that
+the chat runtime's `parse_mentions` (Section 6) will match on send.
+
+### 9.5 Testing strategy (delta)
+
+| Test File | Type | Test Function | Assertions |
+|-----------|------|---------------|------------|
+| `src/pages/Chat/Composer.test.tsx` | Component | `insert_mention_at_caret` | calling the imperative `insertMention("code-reviewer")` splices `@code-reviewer ` at the caret and moves the caret after it |
+| `src/pages/Chat/Composer.test.tsx` | Component | `insert_mention_dedupes` | when draft already has `@code-reviewer`, a second `insertMention` adds no duplicate and refocuses |
+| `src/pages/Chat/SubagentBar.test.tsx` | Component | `bar_visible_when_empty` | with zero attached sub-agents the bar still renders the "Attach sub-agent" control (no longer returns null) |
+| `src/pages/Chat/SubagentBar.test.tsx` | Component | `attach_inserts_handle_on_success` | confirming the picker calls `useAttachSubagent`; on success `onPick` is called with the response alias |
+| `src/pages/Chat/SubagentBar.test.tsx` | Component | `attach_rejection_inserts_nothing` | a 422 (cycle/cap) attach surfaces `toast.error` and `onPick` is **not** called |
+| `src/pages/Chat/SubagentBar.test.tsx` | Component | `detach_removes_chip` | clicking a chip's detach calls `useDetachSubagent` with the child id; chip removed on settle |
+| `src/i18n/locales/*` | Static | i18n key parity | new `chat.subagentBar.*` keys present in both `en` and `pt-BR` |
+
+**Acceptance tests (PRD §9 F11 extension → mapped):**
+- *Bar provides an "Attach sub-agent" control and a per-chip detach control, visible even when empty* → `bar_visible_when_empty` + `detach_removes_chip`.
+- *Attaching adds it to the roster and inserts its `@handle` at the caret with focus returned; no duplicate of an identical `@handle`* → `attach_inserts_handle_on_success` + `insert_mention_at_caret` + `insert_mention_dedupes`.
+- *Attaching enforces the same cycle/self/cap rules, surfacing an inline error and inserting nothing on rejection* → `attach_rejection_inserts_nothing` (validation itself is already covered by the shipped backend `subagents::service` and `tests/subagents.rs` cycle/cap suites — reused, not re-implemented).
+- *Detaching removes the chip and the parent→child link, leaving both agents intact and any typed `@handle` as an unmatched mention* → `detach_removes_chip` + the existing `unmatched_mention_completes_normally` integration test (the orphaned mention path is already covered).
+- *All strings render in `en` and `pt-BR`* → i18n key-parity test.
+
+### 9.6 Assumptions & decisions (delta)
+
+- **Frontend-only extension.** No migration, route, service, or SSE change; the bar drives
+  the existing attach/detach endpoints and validation. *(PRD: "backend endpoints already
+  exist and are reused as-is.")*
+- **Insert the server-returned alias** (`res.attached.alias`) on `onSuccess`, so the
+  defaulted slug (when the user omits an alias in the picker) is what lands in the composer
+  and nothing is inserted when the attach is rejected. *(Inference from alias-defaulting +
+  "inserts nothing on rejection".)*
+- **Caret fallback:** when the textarea isn't focused at attach time, insert at the end of
+  the draft (caret = draft length); the subsequent focus + selection puts the cursor after
+  the inserted handle. *(Inference; the textarea ref retains its last `selectionStart`.)*
+- **Detach does not edit the draft:** an already-typed `@alias` is left intact and becomes an
+  unmatched mention handled by the existing `chat.subagent.noticeUnknown` path at send.
+  *(PRD.)*
+- **Reorder / alias editing stay on the agent detail page.** The chat bar intentionally does
+  not duplicate reorder or inline alias editing. *(Inference from PRD: chat bar = attach +
+  detach.)*
+- **Visibility reversal is intentional and supersedes the shipped acceptance criterion** that
+  required the bar to be hidden when empty. *(PRD update.)*
